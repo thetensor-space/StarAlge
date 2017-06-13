@@ -1,3 +1,9 @@
+/* 
+    Copyright 2013--2017, Peter A. Brooksbank, James B. Wilson.
+    Distributed under GNU GPLv3.
+*/
+
+
    /*--- Compute algebra of adjoints of system of forms ---*/
 
 

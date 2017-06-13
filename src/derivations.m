@@ -1,3 +1,9 @@
+/* 
+    Copyright 2013--2017, Peter A. Brooksbank, James B. Wilson.
+    Distributed under GNU GPLv3.
+*/
+
+
  /*--- Compute Lie algebra of derivations of system of forms ---*/
 
 __block_diagonal := function (v, degrees)

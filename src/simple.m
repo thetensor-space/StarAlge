@@ -1,3 +1,9 @@
+/* 
+    Copyright 2013--2017, Peter A. Brooksbank, James B. Wilson.
+    Distributed under GNU GPLv3.
+*/
+
+
      /*--- File contains functios to handle simple *-algebras ---*/
   
 import "prelims.m": __RF_SETUP, 

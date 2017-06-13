@@ -1,3 +1,10 @@
+/* 
+    Copyright 2013--2017, Peter A. Brooksbank, James B. Wilson.
+    Distributed under GNU GPLv3.
+*/
+
+
+
 wedge := function (u, v)
      n := Degree (Parent (u));
      k := BaseRing (Parent (u));

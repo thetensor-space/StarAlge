@@ -1,3 +1,10 @@
+/* 
+    Copyright 2013--2017, Peter A. Brooksbank, James B. Wilson.
+    Distributed under GNU GPLv3.
+*/
+
+
+
    /*--- file contains functions for handling reflexive forms ---*/
 
 

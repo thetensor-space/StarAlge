@@ -1,3 +1,9 @@
+/* 
+    Copyright 2013--2017, Peter A. Brooksbank, James B. Wilson.
+    Distributed under GNU GPLv3.
+*/
+
+
 /*--- This file contains functions for constructing involutions ---*/
 
 import "prelims.m": IdentifyBasis;

@@ -1,3 +1,9 @@
+/* 
+    Copyright 2013--2017, Peter A. Brooksbank, James B. Wilson.
+    Distributed under GNU GPLv3.
+*/
+
+
    /*--- This file contains main intrinsics for package. ---*/
 
 import "verify.m": IsIsometry, IsSimilarity;

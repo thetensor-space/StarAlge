@@ -1,4 +1,10 @@
 /* 
+    Copyright 2013--2017, Peter A. Brooksbank, James B. Wilson.
+    Distributed under GNU GPLv3.
+*/
+
+
+/* 
    contains the function to compute N^*(<ADJ>), which
    may be used as an overgroup to the stabiliser of an
    arbitrary system of alternating forms.
