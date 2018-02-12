@@ -78,6 +78,10 @@ intrinsic NormStar (S::SeqEnum : Autos := [ 0 : i in [1..#S] ], Adj := 0) -> Grp
      ADJ := AdjointAlgebra (nForms : Autos := Autos);
 
   else // Adjoint has been constructed
+     rad := &meet [ Nullspace (FrobeniusImage (S[i], Autos[i])) : 
+                    i in [1..#S] ];
+     r := Dimension (rad);
+    if r gt 0 then "Assume Adj is on the nodegenerate part."; end if;
     ADJ := Adj;
   end if;
 
