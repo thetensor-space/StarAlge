@@ -10,7 +10,7 @@
    arbitrary system of alternating forms.
 */
 
-intrinsic NormStar (S::SeqEnum : Autos := [ 0 : i in [1..#S] ]) -> GrpMat
+intrinsic NormStar (S::SeqEnum : Autos := [ 0 : i in [1..#S] ], Adj := 0) -> GrpMat
 
   { If A is the algebra of adjoints of the system S, find the 
     group that normalises A and commutes with the involution on A.}
@@ -50,6 +50,9 @@ intrinsic NormStar (S::SeqEnum : Autos := [ 0 : i in [1..#S] ]) -> GrpMat
          return NORM;
      end if;
 
+  // JFM: Added the optional argument to provide the adjoint (Feb. 2018)
+  assert Type(Adj) in {RngIntElt, AlgMat};
+  if Type(Adj) eq RngIntElt then // Adjoint has not been constructed
 
          /*--- find the isometry group via the adjoint algebra ---*/
        
@@ -73,6 +76,10 @@ intrinsic NormStar (S::SeqEnum : Autos := [ 0 : i in [1..#S] ]) -> GrpMat
 
      /* construct the adjoint algebra of <nForms> */
      ADJ := AdjointAlgebra (nForms : Autos := Autos);
+
+  else // Adjoint has been constructed
+    ADJ := Adj;
+  end if;
 
      /* recognise the adjoint algebra */
      assert RecogniseStarAlgebra (ADJ);
@@ -184,4 +191,15 @@ gens cat:= [ U.i : i in [1..Ngens (U)] ];
 
 return NORM;
 
+end intrinsic;
+
+intrinsic NormStar( t::TenSpcElt ) -> GrpMat
+  { If A is the algebra of adjoints of the tensor t, find the 
+    group that normalises A and commutes with the involution on A.}
+  require t`Valence eq 3 : "Must be a 3-tensor.";
+  if assigned t`Bimap`Adjoint then
+    return NormStar(SystemOfForms(t) : Adj := t`Bimap`Adjoint);
+  else
+    return NormStar(SystemOfForms(t));
+  end if;
 end intrinsic;
