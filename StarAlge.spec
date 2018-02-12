@@ -10,6 +10,7 @@
 	  centraliser.m
 	  complements.m
 	  norm.m
+    inv-norm.m
  		simple.m
 	  adjoints.m
   	recognise.m
