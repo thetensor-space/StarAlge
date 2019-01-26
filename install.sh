@@ -6,6 +6,7 @@ START="${HOME}/.magmarc"                # Magma start file location
 
 # Dependencies and .spec locations
 ATTACH1="AttachSpec(\"$DIR/StarAlge.spec\");"
+ATTACH3="AttachSpec(\"$PKGDIR/Sylver/Sylver.spec\");"
 ATTACH2="AttachSpec(\"$PKGDIR/TensorSpace/TensorSpace.spec\");"
 
 
@@ -13,6 +14,18 @@ echo "StarAlge.spec is in $DIR"
 
 
 echo "Dependencies will be downloaded to $PKGDIR"
+
+
+# Sylver install/ update
+if [ -f "$PKGDIR/Sylver/update.sh" ]
+then
+    echo "Dependencies already installed, updating..."
+    sh "$PKGDIR/Sylver/update.sh"
+else
+    echo "Could not find Sylver, downloading..."
+    cd "$PKGDIR"
+    git clone -q https://github.com/algeboy/Sylver
+fi
 
 
 # TensorSpace install/ update
@@ -34,7 +47,7 @@ echo "Dependencies downloaded."
 if [ -f "$START" ]
 then
     echo "Found a Magma start file"
-    for A in "$ATTACH1" "$ATTACH2" do
+    for A in "$ATTACH1" "$ATTACH2" "$ATTACH3" do
         if grep -Fxq "$A" "$START"
         then
             echo "Already installed"
@@ -46,7 +59,7 @@ then
 else
     echo "Creating a Magma start file: $START"
     echo "// Created by an install file for Magma start up." > "$START"
-    for A in "$ATTACH1" "$ATTACH2" do
+    for A in "$ATTACH1" "$ATTACH2" "$ATTACH3" do
         echo "$A" >> "$START"
     done
     echo "Successfully installed"

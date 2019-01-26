@@ -14,6 +14,18 @@ git pull -q origin master
 
 echo "Now updating dependencies."
 
+# Sylver update
+if [ -f "$PKGDIR/Sylver/update.sh" ]
+then
+    sh "$PKGDIR/Sylver/update.sh"
+else
+    echo "Could not find Sylver, downloading..."
+    cd "$PKGDIR"
+    git clone -q https://github.com/algeboy/Sylver
+    echo "Installing Sylver..."
+    sh "$PKGDIR/Sylver/install.sh"
+fi
+
 # TensorSpace update
 if [ -f "$PKGDIR/TensorSpace/update.sh" ]
 then

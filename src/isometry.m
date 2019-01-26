@@ -78,10 +78,10 @@ intrinsic IsometryGroup (S::SeqEnum :
          "argument 2 is not a list of Frobenius exponents";
 
      /* deal with trivial case */
-     if (#S eq 1) then
-	 ISOM := IsometryGroup (S[1] : Auto := Autos[1]);
-         return ISOM;
-     end if;
+//     if (#S eq 1) then
+//	 ISOM := IsometryGroup (S[1] : Auto := Autos[1]);
+//         return ISOM;
+//     end if;
 
 
          /*--- find the isometry group via the adjoint algebra ---*/
