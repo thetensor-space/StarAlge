@@ -28,6 +28,10 @@ import "grpalg.m": GroupAlgebraAsMatrixStarAlgebra;
 
 /* Wedderburn worker function */
 
+/* 
+    Significant amount of time building the system to solve, often this is the 
+  main bottleneck in __refine_wedderburn_complement.
+*/
 __refine_wedderburn_complement := function (X, J)
 
 assert Dimension (J) eq Ngens (J);

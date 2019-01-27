@@ -34,6 +34,79 @@ import "complements.m": TaftComplement;
    its symmetric and alternating parts, so we do.
 */
 
+__default_adj_new := function(Forms)
+
+     MA := Parent (Forms[1]);
+
+    // JM: working in the solvers in Sylver.
+    t := Tensor(Forms, 2, 1);
+    M := MidNucleus(t);
+    pi2 := Induce(M, 2);
+    pi1 := Induce(M, 1);
+    M_Basis := Basis(M);
+    ADJ := sub< MA | Codomain(pi2) >;
+    V1_Basis := [b @ pi1 : b in M_Basis];
+    assert forall{b : b in M_Basis | b @ pi2 in ADJ};                 // PASS
+    assert forall{b : b in M_Basis | Transpose(b @ pi1) in ADJ};      // PASS
+    // Magma cannot handle this star function for some reason.
+    ADJ_K := KMatrixSpace(BaseRing(ADJ), Degree(ADJ), Degree(ADJ));
+    star := hom< ADJ_K -> ADJ_K | [<ADJ_K!(b @ pi2), ADJ_K!Transpose(b @ pi1)> : b in M_Basis] >;
+
+     /* Added the multilinear tech to solve for sym and alt quicker. (5/23/16 JM) */
+     /* basis for SYM and ALT */     
+
+     /* construct ADJ and its involution */
+     ADJ`IsBasis := true;
+     ADJ`Star := star;
+
+     /* we need to start from scratch to find a Taft decomp */
+     RAD, TAFT := TaftDecomposition (ADJ);
+     RAD`Star := ADJ`Star;
+     TAFT`Star := ADJ`Star;
+     TAFT_RF := __RF_SETUP ("algebra");
+     TAFT_data := rec < TAFT_RF | >;
+     TAFT_data`isSemisimple := true;
+     TAFT_data`taftComplement := TAFT;
+     TAFT_data`jacobsonRadical := sub < Generic (TAFT) | TAFT!0 >;
+     TAFT`StarAlgebraInfo := TAFT_data;
+
+     /* compute generators for <alternating_radical> */
+     space := KMatrixSpace (BaseRing (ADJ), Degree (ADJ), Degree (ADJ));
+
+    // Induce the star on RAD and construct the (-1)-eigen space.
+    if Dimension(RAD) ne 0 then
+      Star_RAD := Matrix([Coordinates(RAD, b @ star) : b in Basis(RAD)]);
+      ES := Eigenspace(Star_RAD, -1);
+      if Dimension(ES) ne 0 then
+        ALT_RAD_BAS := [&+[b[i]*Basis(RAD)[i] : i in [1..Dimension(RAD)]] : 
+          b in Basis(ES)];
+        ALT_RAD := sub< space | ALT_RAD_BAS >;
+      else
+        ALT_RAD := sub< space | space!0 >;
+      end if;
+    else
+      ALT_RAD := sub< space | space!0 >;
+    end if;
+       
+     /* convert <ALT_RAD> to a basis over the prime field */
+     k := BaseRing (MA);
+     e := Degree (k);
+     BAR := Basis (ALT_RAD);
+     ALT_RAD := [ (k.1)^f * BAR[i] : f in [0..e-1], i in [1..#BAR] ];
+              
+     RF := __RF_SETUP ("algebra");
+     ADJ_data := rec < RF | >;
+
+     ADJ_data`alternatingRadical := ALT_RAD;
+     ADJ_data`isSemisimple := (Dimension (RAD) eq 0);
+     ADJ_data`taftComplement := TAFT;
+     ADJ_data`jacobsonRadical := RAD;
+
+     ADJ`StarAlgebraInfo := ADJ_data;
+                     
+return ADJ;
+end function;
+
 __default_adj := function (Forms)
 
      MA := Parent (Forms[1]);
@@ -66,13 +139,13 @@ __default_adj := function (Forms)
      /* compute generators for <alternating_radical> */
      space := KMatrixSpace (BaseRing (ADJ), Degree (ADJ), Degree (ADJ));
      if Dimension (RAD) * Dimension (ALT) eq 0 then
-         ALT_RAD := sub < space | space!0 >;
+         time ALT_RAD := sub < space | space!0 >;
      else
          ALT_SPACE := sub < space | 
                    [ space!(ALT_BASIS[i]) : i in [1..#ALT_BASIS] ] >;
          RAD_SPACE := sub < space | 
                               [ space!(RAD.i) : i in [1..Ngens (RAD)] ] >;
-         ALT_RAD := ALT_SPACE meet RAD_SPACE;
+         time ALT_RAD := ALT_SPACE meet RAD_SPACE;
      end if;
        
      /* convert <ALT_RAD> to a basis over the prime field */
@@ -560,13 +633,14 @@ return ADJ;
 end intrinsic;
 
 
-/* --- added in Lisbon, July 2011 ---*/
+/*
+// --- added in Lisbon, July 2011 ---
 
 intrinsic DerivationAlgebra (S :: SeqEnum) -> ModMatFld , ModMatFld
 
   { Compute the derivation algebra of the system of forms S }
 
-     /* compute Der(b) as a subspace of End(V) x End(W) */
+     // compute Der(b) as a subspace of End(V) x End(W) 
 
      n := Degree (Parent (S[1]));
      e := #S;
@@ -598,7 +672,7 @@ intrinsic DerivationAlgebra (S :: SeqEnum) -> ModMatFld , ModMatFld
      MSn := KMatrixSpace (F, n, n);
      MSe := KMatrixSpace (F, e, e);
  
-     /* project Der(b) onto End(V) and End(W) */
+     // project Der(b) onto End(V) and End(W) 
      basV := [ MSn![ Vector (sol.i)[j] : j in [1..n^2] ] : 
                                      i in [1..Ngens (sol)] ];
      DerV := sub < MSn | [ MSn!basV[i] : i in [1..#basV] ] >;
@@ -610,4 +684,4 @@ intrinsic DerivationAlgebra (S :: SeqEnum) -> ModMatFld , ModMatFld
      
 return DerV, DerW;
 
-end intrinsic;
+end intrinsic;*/

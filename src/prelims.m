@@ -244,7 +244,7 @@ end function;
 	B is a x t x c
 
  */
-/*__SymAlt := function( forms )
+__SymAlt := function( forms )
 	c := #forms;	
 	a := Nrows(forms[1]);
 	b := Ncols(forms[1]);
@@ -303,9 +303,9 @@ end function;
 	Sym := Nullspace(HorizontalJoin(m1+m2,m3));
 	Alt := Nullspace(HorizontalJoin(m1-m2,m3));
 	return [Matrix(K,a,s,Eltseq(x)) : x in Basis(Sym)], [Matrix(K,t,b,Eltseq(x)) : x in Basis(Alt)];
-end function;*/
+end function;
 
-__SymAlt := function( forms )
+/*__SymAlt := function( forms )
 	c := #forms;	
 	a := Nrows(forms[1]);
   assert Ncols(forms[1]) eq a;
@@ -341,4 +341,4 @@ __SymAlt := function( forms )
   alt := Nullspace(A+B);
   sym := Nullspace(A-B);
   return [Matrix(K,a,a,Eltseq(x)) : x in Basis(sym)], [Matrix(K,a,a,Eltseq(x)) : x in Basis(alt)];
-end function;
+end function;*/
