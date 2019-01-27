@@ -139,13 +139,13 @@ __default_adj := function (Forms)
      /* compute generators for <alternating_radical> */
      space := KMatrixSpace (BaseRing (ADJ), Degree (ADJ), Degree (ADJ));
      if Dimension (RAD) * Dimension (ALT) eq 0 then
-         time ALT_RAD := sub < space | space!0 >;
+         ALT_RAD := sub < space | space!0 >;
      else
          ALT_SPACE := sub < space | 
                    [ space!(ALT_BASIS[i]) : i in [1..#ALT_BASIS] ] >;
          RAD_SPACE := sub < space | 
                               [ space!(RAD.i) : i in [1..Ngens (RAD)] ] >;
-         time ALT_RAD := ALT_SPACE meet RAD_SPACE;
+         ALT_RAD := ALT_SPACE meet RAD_SPACE;
      end if;
        
      /* convert <ALT_RAD> to a basis over the prime field */
