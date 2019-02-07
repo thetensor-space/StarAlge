@@ -4,22 +4,12 @@ beyond.
 Peter A. Brooksbank, Bucknell University
 James B. Wilson, Colorado State University
 
-Copyright 2013--2017. Distributed under GNU GPLv3.
-
-  This program is free software: you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by the Free 
-Software Foundation, either version 3 of the License, or (at your option) any
-later version.
+Copyright 2013--2017. Distributed under MIT License.
 
   This program is distributed in the hope that it will be useful, but WITHOUT 
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
 FOR A PARTICULAR PURPOSE. See the GNU General Public License for more 
 details.
-
-  You should have received a copy of the GNU General Public License along with
-this program. If not, see <http://www.gnu.org/licenses/>.
-
-
 
 Contents:
 
@@ -28,3 +18,8 @@ StarAlge.spec  — magma specification file.
 src/
 	Source Code for package.
 
+## Acknowledgement
+
+`StarAlge` was created by researchers at Bucknell U. and The Ohio State University, and maintained since its creation by researchers 
+at Bucknell U. and Colorado State University.  We also acknowledge U. Auckland and E.A. O'Brien, where extensive testing and support 
+of the package.
