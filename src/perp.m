@@ -56,14 +56,20 @@ intrinsic PerpDecomposition (S::SeqEnum : Adjoint := 0) -> AlgMatElt, SeqEnum
 ============================================================================= */
 // ==== ADDED ==================================================================
     if #S eq 1 then
+
       assert IsSimple(A);
       _, _, _, phi := RecogniseClassicalSSA(A);
       idems := A`StarAlgebraInfo`primitiveIdempotents;
-      new_idems := idems @ phi;
-      assert forall{I : I in new_idems | I^2 eq I}; 
-      assert forall{I : I in new_idems | I @ A`Star in new_idems};
-      assert &+new_idems eq Generic(A)!1;
-      A`StarAlgebraInfo`primitiveIdempotents := new_idems;
+
+      // if there is a problem with the idempotents, apply this fix.
+      if exists{I : I in idems | I @ A`Star notin idems} then
+        new_idems := idems @ phi;
+        assert forall{I : I in new_idems | I^2 eq I}; 
+        assert forall{I : I in new_idems | I @ A`Star in new_idems};
+        assert &+new_idems eq Generic(A)!1;
+        A`StarAlgebraInfo`primitiveIdempotents := new_idems;
+      end if;
+
     end if;
 // =============================================================================
 
