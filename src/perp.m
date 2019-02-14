@@ -41,6 +41,32 @@ intrinsic PerpDecomposition (S::SeqEnum : Adjoint := 0) -> AlgMatElt, SeqEnum
      assert RecogniseStarAlgebra (A);
 
 
+/* ==== DELETE =================================================================
+   My guess is that these cases are designed to 
+    1. record the correct dimensions based on the star 
+      a. if self-adjoint, record the dimension
+      b. if star maps it to another prim-idem then record double the dim but
+          only do this once!
+    2. verify the idempotents are ordered exactly as you think they are.
+
+    The current bug is because (2) is not met. In fact, idempotents @ A`Star is 
+    note contained in idempotents. Here the band-aid fix, but there is a deeper
+    error.
+                                                  JFM   14-02-2019
+============================================================================= */
+// ==== ADDED ==================================================================
+    if #S eq 1 then
+      assert IsSimple(A);
+      _, _, _, phi := RecogniseClassicalSSA(A);
+      idems := A`StarAlgebraInfo`primitiveIdempotents;
+      new_idems := idems @ phi;
+      assert forall{I : I in new_idems | I^2 eq I}; 
+      assert forall{I : I in new_idems | I @ A`Star in new_idems};
+      assert &+new_idems eq Generic(A)!1;
+      A`StarAlgebraInfo`primitiveIdempotents := new_idems;
+    end if;
+// =============================================================================
+
      /* next form a basis from the images of the 
         primitive self-adjoint idempotents of <A> */
      idempotents := A`StarAlgebraInfo`primitiveIdempotents;
@@ -48,8 +74,8 @@ intrinsic PerpDecomposition (S::SeqEnum : Adjoint := 0) -> AlgMatElt, SeqEnum
      bas := [ ];
      for i in [1..#idempotents] do
          e := idempotents[i];
-	 im := Image (e);
-	 bas cat:= Basis (im);
+         im := Image (e);
+         bas cat:= Basis (im);
          if (e @ A`Star eq e) then
             /* <e> is self-adjoint */
             Append (~dims, Dimension (im));
@@ -61,8 +87,9 @@ intrinsic PerpDecomposition (S::SeqEnum : Adjoint := 0) -> AlgMatElt, SeqEnum
                assert e @ A`Star eq idempotents[i-1];
             end if;
          else
-            assert e @ A`Star eq idempotents[i-1];
+           assert e @ A`Star eq idempotents[i-1];
          end if;
+
      end for;
 
      /* construct the associated transition matrix */
