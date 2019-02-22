@@ -486,7 +486,7 @@ intrinsic IsometryGroup (M::AlgMatElt : Auto := 0) -> GrpMat
        transform <F> to standard form and hence obtain
        generators for the conformal symplectic group of <F>
      */
-     T2 := FrobeniusImage (TransformForm (F, type), Auto);
+     T2 := FrobeniusImage (TransformForm (F, type: Restore := true), Auto);
      iso := __standard_isometry_group (type, r, k);
      iso_gens := [ T2 * iso.i * T2^-1 : i in [1..Ngens (iso)] ];
 
@@ -598,7 +598,7 @@ intrinsic SimilarityGroup (M::AlgMatElt : Auto := 0) -> GrpMat
        transform <F> to standard form and hence obtain
        generators for the conformal symplectic group of <F>
      */
-     T2 := FrobeniusImage (TransformForm (F, type), Auto);
+     T2 := FrobeniusImage (TransformForm (F, type: Restore := true), Auto);
      sim := __standard_similarity_group (type, r, k);
      sim_gens := [ T2 * sim.i * T2^-1 : i in [1..Ngens (sim)] ];
 
