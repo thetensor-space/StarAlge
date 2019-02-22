@@ -32,7 +32,7 @@ end function;
 intrinsic IsometryGroup (S::SeqEnum : 
   			    //Autos := [0 : i in [1..#S]],
                             Autos := [0 : i in [1..#Set (S)]],
-			    DisplayStructure := true,
+			    DisplayStructure := false,
           Adjoint := 0
                         ) -> GrpMat
 
