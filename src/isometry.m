@@ -29,7 +29,7 @@ return false;
 end function;
 
 
-intrinsic IsometryGroup (S::SeqEnum : 
+intrinsic IsometryGroup (S::SeqEnum :
   			    //Autos := [0 : i in [1..#S]],
                             Autos := [0 : i in [1..#Set (S)]],
 			    DisplayStructure := false,
@@ -252,7 +252,7 @@ __my_spinor_map := function (X, F)
    end if;
 end function;
 
-intrinsic ClassicalIntersection (S::SeqEnum) -> BoolElt, GrpMat
+intrinsic ClassicalIntersection (S::SeqEnum : Forms := [], Autos := [] ) -> BoolElt, GrpMat
 
   { Find the intersection of a collection of classical groups defined
     on the same underlying module }
@@ -273,22 +273,24 @@ intrinsic ClassicalIntersection (S::SeqEnum) -> BoolElt, GrpMat
      require forall { i : i in [2..#S] | Degree (S[i]) eq d } :
         "groups in argument are not defined on the same module"; 
 
-     /* find forms preserved by <grps> */
-     Forms := [ ];
-     Autos := [ ];
-     for i in [1..#S] do
-         X := S[i];
-         flag, F := BilinearForm (X);
-         if (not flag) then
-	    flag, F := SesquilinearForm (X);
-            require flag : "argument is not a list of classical groups";
-	    auto := Degree (k) div 2;
-	 else
-	    auto := 0;
-         end if;
-         Append (~Forms, F);
-         Append (~Autos, auto);
-     end for;
+     if #Forms eq 0 then
+         /* find forms preserved by <grps> */
+         Forms := [ ];
+         Autos := [ ];
+         for i in [1..#S] do
+               X := S[i];
+               flag, F := BilinearForm (X);
+               if (not flag) then
+                  flag, F := SesquilinearForm (X);
+                  require flag : "argument is not a list of classical groups";
+                  auto := Degree (k) div 2;
+               else
+                  auto := 0;
+               end if;
+               Append (~Forms, F);
+               Append (~Autos, auto);
+         end for;
+     end if;
 
      /* find intersection of full isometry groups of these forms */
      ISOM := IsometryGroup (Forms : Autos := Autos, 
