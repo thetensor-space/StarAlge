@@ -481,6 +481,7 @@ intrinsic IsometryGroup (M::AlgMatElt : Auto := 0) -> GrpMat
             type := IdentifyOrthogonalType (F);
          end if;
      end if;
+     "type =", type;
 
      /*
        transform <F> to standard form and hence obtain
@@ -519,7 +520,7 @@ intrinsic IsometryGroup (M::AlgMatElt : Auto := 0) -> GrpMat
      gens := [ T1^-1 * gens[i] * T1 : i in [1..#gens] ];
 
      assert forall{ i : i in [1..#gens] | IsIsometry (M, Auto, gens[i]) };
-     
+
      ISOM := sub < GL (d, k) | [ GL (d, k)!gens[i] : i in [1..#gens] ] >;
      ord := #iso * ordgl * (#k)^(r*(d-r));
      
