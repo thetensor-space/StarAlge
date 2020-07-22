@@ -252,7 +252,7 @@ __my_spinor_map := function (X, F)
    end if;
 end function;
 
-intrinsic ClassicalIntersection (S::SeqEnum : Forms := [], Autos := [] ) -> BoolElt, GrpMat
+intrinsic ClassicalIntersection (S::SeqEnum : Forms := [], Autos := [] ) -> GrpMat
 
   { Find the intersection of a collection of classical groups defined
     on the same underlying module }
@@ -342,4 +342,100 @@ intrinsic ClassicalIntersection (S::SeqEnum : Forms := [], Autos := [] ) -> Bool
       end for;
 
 return I;
+end intrinsic;
+
+
+__DerivedSubgroup_APPROX := function (G)
+  X := [ (Random (G), Random (G)) : i in [1..5] ];
+return sub < Generic (G) | X >;
+end function;
+
+/*
+   ADDED BY PAB ON 7/22/2020.
+
+   Notes: a basic version of the function we will perhaps eventually want.
+
+   Given: a list of groups G, each of which preserves a sesquilinear form up
+   to scalar multiple, and each of which also contains the full isometry 
+   group preserving that form. (We will likely want to relax the latter 
+   condition eventually.)
+
+   Output: the intersection of the groups in the list.
+*/
+
+intrinsic ConformalIntersection (S::SeqEnum) -> GrpMat
+
+  { Find the intersection of a collection of conformal classical groups. }
+
+     require forall { G : G in S | Type (G) eq GrpMat } :
+        "elements of argument are not matrix groups";
+  
+     k := BaseRing (S[1]);
+     n := #S;
+     d := Degree (S[1]);
+     
+     require Characteristic (k) ne 2 : 
+        "groups in argument are not defined over a finite field
+         of odd characteristic";
+         
+     require forall { i : i in [2..#S] | BaseRing (S[i]) eq k } :
+        "groups in argument are not defined on the same module";
+  
+     require forall { i : i in [2..#S] | Degree (S[i]) eq d } :
+        "groups in argument are not defined on the same module"; 
+         
+         /* 
+            the hypothesis on the input ensures that the derived
+            subgroup of each group in S preserves a unique form.
+         */
+         DS := [ __DerivedSubgroup_APPROX (X) : X in S ];
+         Forms := [ ];
+         for X in DS do
+              flag, F := BilinearForm (X);
+ //             require flag : "some group in the list does not preserve a unique form up to scalar";
+              Append (~Forms, F);
+         end for;
+      
+     /* 
+        each group in S induces a subgroup of scalars on the 1-space spanned by its form;
+        hence, the entire list S defines a subgroup of B := (k^*)^n;
+        this is the "outer" group of pseudo-isometries we will try to lift
+     */
+     A, f := MultiplicativeGroup (k);
+     B, i := DirectSum([ A : j in [1..n] ]);
+     Y := [ ];
+     for j in [1..n] do
+          G := S[j];
+          for s in [1..Ngens (G)] do
+               M := G.s * Forms[j] * Transpose (G.s) * Forms[j]^-1;
+               require IsScalar (M) : "some group in the list does not preserve a unique form up to scalar";
+               Append (~Y, (M[1][1] @@ f) @ i[j]);
+          end for;
+     end for;
+     U := sub < B | Y >;
+     "proportion of all scalar lifts we must try:", #U / #B;
+     "total:", #U;
+
+     /* find intersection of full isometry subgroups of these groups */
+     ISOM := IsometryGroup (Forms);
+
+     L := [ ]; 
+     /* try to lift outer pseudo-isometries */
+     T := Tensor (Forms, 2, 1);
+     for u in U do
+          v := Eltseq (u);
+          Fu := [ ((v[j] * A.1) @ f) * Forms[j] : j in [1..n] ];
+          Tu := Tensor (Fu, 2, 1);
+          isit, g := IsIsometric (T, Tu);
+          if isit then
+               assert forall { j : j in [1..n] | g * Forms[j] * Transpose (g) eq Fu[j] };
+               Append (~L, g);
+          end if;
+     end for;
+
+     H := sub < Generic (ISOM) | ISOM , L >;
+     "index of isometry group in the intersection:", LMGOrder (H) div LMGOrder (ISOM);
+
+return H;
+
 end intrinsic;
