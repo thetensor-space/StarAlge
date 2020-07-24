@@ -22,7 +22,7 @@ IsReflexiveForm := function (F)
     return true;
   elif F eq -Transpose (F) then
     return true;
-  elif (e mod 2 eq 0) and (F eq Transpose (FrobeniusImage (F, e))) then
+  elif (e mod 2 eq 0) and (F eq Transpose (FrobeniusImage (F, e div 2))) then
     return true;
   end if;
 return false;
@@ -283,7 +283,11 @@ intrinsic ClassicalIntersection (S::SeqEnum : Forms := [], Autos := [] ) -> GrpM
                if (not flag) then
                   flag, F := SesquilinearForm (X);
                   require flag : "argument is not a list of classical groups";
-                  auto := Degree (k) div 2;
+// added by PAB on 7/24/2020 as temp fix
+assert Degree (k) mod 2 eq 0;
+auto := Degree (k) div 2;
+assert exists (a){ b : b in k | b ne 0 and Transpose (b*F) eq FrobeniusImage (b*F, auto) };
+F := a * F;       
                else
                   auto := 0;
                end if;
