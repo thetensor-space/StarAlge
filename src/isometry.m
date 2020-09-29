@@ -392,7 +392,7 @@ intrinsic ConformalIntersection (S::SeqEnum) -> GrpMat
             the hypothesis on the input ensures that the derived
             subgroup of each group in S preserves a unique form.
          */
-         DS := [ __DerivedSubgroup_APPROX (X) : X in S ];
+         DS := [ __DerivedSubgroup_APPROX (X) : X in S ];  // change to DerivedSubgroupMonteCarlo
          Forms := [ ];
          for X in DS do
               flag, F := BilinearForm (X);
@@ -421,7 +421,7 @@ intrinsic ConformalIntersection (S::SeqEnum) -> GrpMat
      "total:", #U;
 
      /* find intersection of full isometry subgroups of these groups */
-     ISOM := IsometryGroup (Forms);
+     ISOM := IsometryGroup (Forms : DisplayStructure := false);
 
      L := [ ]; 
      /* try to lift outer pseudo-isometries */
@@ -439,6 +439,93 @@ intrinsic ConformalIntersection (S::SeqEnum) -> GrpMat
 
      H := sub < Generic (ISOM) | ISOM , L >;
      "index of isometry group in the intersection:", LMGOrder (H) div LMGOrder (ISOM);
+
+return H;
+
+end intrinsic;
+
+// 9/22/2020
+intrinsic ConformalUnitaryIntersection (S::SeqEnum) -> GrpMat
+
+  { Find the intersection of a collection of conformal classical groups. }
+
+     require forall { G : G in S | Type (G) eq GrpMat } :
+        "elements of argument are not matrix groups";
+  
+     k := BaseRing (S[1]);
+     n := #S;
+     d := Degree (S[1]);
+     
+     require Characteristic (k) ne 2 : 
+        "groups in argument are not defined over a finite field
+         of odd characteristic";
+         
+     require forall { i : i in [2..#S] | BaseRing (S[i]) eq k } :
+        "groups in argument are not defined on the same module";
+  
+     require forall { i : i in [2..#S] | Degree (S[i]) eq d } :
+        "groups in argument are not defined on the same module"; 
+         
+         /* 
+            the hypothesis on the input ensures that the derived
+            subgroup of each group in S preserves a unique form.
+         */
+         DS := [ __DerivedSubgroup_APPROX (X) : X in S ];
+         Forms := [ ];
+         for X in DS do
+              flag, F := SesquilinearForm (X);
+ //             require flag : "some group in the list does not preserve a unique form up to scalar";
+Append (~Forms, Transpose (F));
+// N.B. For some reason SesquilinearForm is not quite 
+// aligned with the usual Magma preservation of form
+         end for;
+      
+     /* 
+        each group in S induces a subgroup of scalars on the 1-space spanned by its form;
+        hence, the entire list S defines a subgroup of B := (k^*)^n;
+        this is the "outer" group of pseudo-isometries we will try to lift
+     */
+     A, f := MultiplicativeGroup (k);
+     B, i := DirectSum([ A : j in [1..n] ]);
+     Y := [ ];
+     e := Degree (k) div 2;
+     for j in [1..n] do
+          G := S[j];
+          for s in [1..Ngens (G)] do
+               M := G.s * Forms[j] * FrobeniusImage (Transpose (G.s), e) * Forms[j]^-1;
+               require IsScalar (M) : "some group in the list does not preserve a unique form up to scalar";
+               Append (~Y, (M[1][1] @@ f) @ i[j]);
+          end for;
+     end for;
+     U := sub < B | Y >;
+     "proportion of all scalar lifts we must try:", #U / #B;
+     "total:", #U;
+
+     /* find intersection of full isometry subgroups of these groups */
+     ISOM := IsometryGroup (Forms : DisplayStructure := false, Autos := [e : i in [1..n]]);
+     ISOM := sub < Generic (ISOM) | [ FrobeniusImage (ISOM.i, e) : i in [1..Ngens (ISOM)] ] >;
+     // action twisted again 
+     assert forall { g : g in ISOM | 
+             forall { F : F in Forms | g * F * FrobeniusImage (Transpose (g), e) eq F } };
+
+/*
+     L := [ ]; 
+     T := Tensor (Forms, 2, 1);
+     for u in U do
+          v := Eltseq (u);
+          Fu := [ ((v[j] * A.1) @ f) * Forms[j] : j in [1..n] ];
+          Tu := Tensor (Fu, 2, 1);
+          isit, g := IsIsometric (T, Tu);
+          if isit then
+               assert forall { j : j in [1..n] | g * Forms[j] * Transpose (g) eq Fu[j] };
+               Append (~L, g);
+          end if;
+     end for;
+     H := sub < Generic (ISOM) | ISOM , L >;
+     "index of isometry group in the intersection:", LMGOrder (H) div LMGOrder (ISOM);
+*/
+
+H := ISOM;
 
 return H;
 
