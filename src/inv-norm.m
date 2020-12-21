@@ -27,14 +27,20 @@ __InverseNormSimple := function (STAN, s)
 	
 	   assert not ((name eq "symplectic") or (name eq "exchange"));
 	   K := BaseRing (STAN);
-	
+	   p := Characteristic (K);
 	   if name eq "unitary" then
          f := Degree (K); assert f mod 2 eq 0;
-         k := GF (Characteristic (K)^(f div 2));
-         ss := s[1][1];
-         assert ss in k;
-         isit, aa := NormEquation (K, k!ss);
-         assert isit;
+assert exists (e){ l : l in Divisors (f) | (l lt f) and
+           STAN![K.1] @ STAN`Star eq STAN![K.1^(p^l)] 
+                 };
+         fixed := { x : x in K | x eq x^(p^e) };
+         k := sub < K | fixed >;
+assert #k lt #K;
+assert s eq s^(p^e);
+assert s[1][1] in k;
+         isit, aa := NormEquation (K, k!(s[1][1])); 
+assert isit;
+assert STAN![aa] @ STAN`Star * STAN![aa] eq s;
          return true, STAN![aa];         
       else  // orthogonal ... put in the square root again
          ss := K!(s[1][1]);
@@ -148,11 +154,7 @@ intrinsic InverseNorm (A::Alg, s::AlgElt) -> BoolElt, AlgElt
   MS := KMatrixSpaceWithBasis ([MS!x : x in Tbas cat Jbas]);
   coords := Coordinates (MS, MS!Matrix (s));
   s_proj := &+ [ coords[i] * Tbas[i] : i in [1..#Tbas] ];
-  if __SANITY_CHECK then
-	assert s_proj in T;
-	assert s_proj eq s_proj @ T`Star;
-  end if;
-		
+  assert (s_proj in T) and (s_proj eq s_proj @ T`Star);	
   isit, a := __InverseNormSemisimple (T, s_proj);
   if not isit then	return false, _; end if;
 	 
@@ -160,11 +162,8 @@ intrinsic InverseNorm (A::Alg, s::AlgElt) -> BoolElt, AlgElt
   while not ((a @ A`Star)*a eq s) do
 	a := a + (a @ A`Star)^-1 * (s - (a @ A`Star) * a) / 2;
   end while;
-
-  if __SANITY_CHECK then	 
-	 assert (a @ A`Star) * a eq s;
-	 "win";
-  end if;
+ 
+  assert (a @ A`Star) * a eq s;
   
 return true, a;
 

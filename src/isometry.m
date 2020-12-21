@@ -417,6 +417,9 @@ intrinsic ConformalIntersection (S::SeqEnum) -> GrpMat
           end for;
      end for;
      U := sub < B | Y >;
+     if #U eq 1 then // the groups are all isometry groups
+          return ClassicalIntersection (S);     
+     end if;
      "proportion of all scalar lifts we must try:", #U / #B;
      "total:", #U;
 
@@ -444,7 +447,136 @@ return H;
 
 end intrinsic;
 
-// 9/22/2020
+////////////////////////////////////////////////
+// code added by PAB on 12/15/2020 to handle  // 
+// intersections of conformal unitary groups. //
+////////////////////////////////////////////////
+
+__vector_to_matrix := function(x,a,b)
+	X := Matrix(BaseRing(x), a,a, Eltseq(x)[1..(a^2)]);
+	Y := Matrix(BaseRing(x), b,b, Eltseq(x)[(a^2+1)..(a^2+b^2)]);
+	return X,Y;
+end function;
+
+/*
+	XA - BY = C
+
+	A is s x b x c, 
+	B is a x t x c
+	C is a x b x c
+ */
+Adj2 := function( formsA, formsB )
+	c := #formsA;
+	a := Nrows(formsB[1]);
+	b := Ncols(formsA[1]);
+	K := BaseRing(formsA[1]);
+	s := Nrows(formsA[1]);
+	t := Ncols(formsB[1]);
+	A := formsA[1];
+	for i in [2..c] do
+		A := HorizontalJoin(A, formsA[i]);
+	end for;	
+	mat := ZeroMatrix( K, a*s+t*b, a*b*c );
+	for j in [1..a] do
+		InsertBlock(~mat, A, s*(j-1)+1, b*c*(j-1)+1 );
+	end for;
+	delete A;
+	slicedforms := [ [ ExtractBlock(-Transpose(B), 1, i, t, 1) : i in [1..a]] : B in formsB ];
+	for i in [1..a] do
+		for j in [1..c] do
+			for k in [1..b] do
+				InsertBlock(~mat, slicedforms[j][i], t*(k-1)+a*s+1, c*b*(i-1)+b*(j-1)+k );
+			end for;
+		end for;
+	end for;
+	delete slicedforms;	
+return Nullspace(mat);
+end function;
+
+
+/*
+  This is a unitary version of a function in "isom-test.m"
+  in the Aut-Sandbox repo. This all needs to be unified.
+*/
+__IsIsometric_Hermitian := function (S, T, Autos) 
+  n := #S;
+  d := Nrows (S[1]);
+  /* find U, V of full rank with U * S[i] = T[i] * V^t */
+  space := Adj2 (S, T);
+  
+  if Dimension (space) eq 0 then return false, _; end if;
+
+  //  TBD: This part can surely be made deterministic, a la Brooksbank-Luks
+  N := NullSpace (__vector_to_matrix(space.1, d, d));
+  for i in [2..Ngens (space)] do
+	  N := N meet NullSpace (__vector_to_matrix(space.i, d, d));
+	  if Dimension (N) eq 0 then
+	  	break;
+	  end if;
+  end for;
+  if Dimension (N) gt 0 then 
+	  return false, _;
+  end if;
+	
+  LIMIT := 20 * Dimension (space);
+  i := 0;
+  found := false;
+  while (i lt LIMIT) and (not found) do
+		i +:= 1;
+		U, V := __vector_to_matrix(Random (space), d, d);
+	  	assert forall { i : i in [1..n] | U * S[i] eq T[i] * Transpose (V) };
+		if (Rank (U) eq d) and (Rank (V) eq d) then
+	  	   found := true;
+		end if;
+  end while;
+  if (not found) then
+		// This is Monte Carlo!	 Will need to change.
+		"Monte carlo test of invertible failed.";
+		return false, _;
+  end if;
+	 
+  /* solve the adjoint algebra problem */
+  A := AdjointAlgebra (T : Autos := Autos); // Call it on T so it can retrieve pre-computed adj.
+assert 
+forall { i : i in [1..Ngens (A)] | 
+forall { j : j in [1..n] | 
+FrobeniusImage (A.i, Autos[j]) * T[j] eq T[j] * Transpose (A.i @ A`Star)
+       }
+       }; 
+    
+  e := Autos[1];   
+  V := FrobeniusImage (V, e);
+assert forall { i : i in [1..n] | U * S[i] eq T[i] * FrobeniusImage (Transpose (V), e) };
+	 
+  s := FrobeniusImage ((U * V)^-1, e);
+	assert s in A;
+"TEST A:", forall { i : i in [1..n] | FrobeniusImage (s, e) * T[i] eq T[i] * Transpose (s) };
+"s^-1 * (s @ A`Star) =", s^-1 * (s @ A`Star);	
+	assert s eq (s @ A`Star);
+
+  isit, a := InverseNorm (A, s);
+  if not isit then return false, _; end if;
+  
+//  g := a * U;
+g := a * FrobeniusImage (U, e);  
+
+assert
+forall { i : i in [1..n] | 
+   FrobeniusImage (g, e) * S[i] * Transpose (g) eq T[i] 
+              };
+  
+/*
+assert forall { i : i in [1..n] | 
+   g * S[i] * FrobeniusImage (Transpose (g), Autos[i]) eq T[i] 
+              };
+*/
+  	
+return true, FrobeniusImage (GL (Nrows (g), BaseRing (Parent (g)))!g, e);
+
+end function;
+
+
+
 intrinsic ConformalUnitaryIntersection (S::SeqEnum) -> GrpMat
 
   { Find the intersection of a collection of conformal classical groups. }
@@ -453,6 +585,8 @@ intrinsic ConformalUnitaryIntersection (S::SeqEnum) -> GrpMat
         "elements of argument are not matrix groups";
   
      k := BaseRing (S[1]);
+     assert Degree (k) mod 2 eq 0; 
+     e := Degree (k) div 2;
      n := #S;
      d := Degree (S[1]);
      
@@ -465,6 +599,8 @@ intrinsic ConformalUnitaryIntersection (S::SeqEnum) -> GrpMat
   
      require forall { i : i in [2..#S] | Degree (S[i]) eq d } :
         "groups in argument are not defined on the same module"; 
+        
+     Autos := [ e : i in [1..n] ];
          
          /* 
             the hypothesis on the input ensures that the derived
@@ -474,10 +610,9 @@ intrinsic ConformalUnitaryIntersection (S::SeqEnum) -> GrpMat
          Forms := [ ];
          for X in DS do
               flag, F := SesquilinearForm (X);
- //             require flag : "some group in the list does not preserve a unique form up to scalar";
-Append (~Forms, Transpose (F));
-// N.B. For some reason SesquilinearForm is not quite 
-// aligned with the usual Magma preservation of form
+              F := Transpose (F);
+assert forall { x : x in Generators (X) | x * F * Transpose (FrobeniusImage (x, e)) eq F };
+              Append (~Forms, F);
          end for;
       
      /* 
@@ -488,7 +623,6 @@ Append (~Forms, Transpose (F));
      A, f := MultiplicativeGroup (k);
      B, i := DirectSum([ A : j in [1..n] ]);
      Y := [ ];
-     e := Degree (k) div 2;
      for j in [1..n] do
           G := S[j];
           for s in [1..Ngens (G)] do
@@ -508,24 +642,22 @@ Append (~Forms, Transpose (F));
      assert forall { g : g in ISOM | 
              forall { F : F in Forms | g * F * FrobeniusImage (Transpose (g), e) eq F } };
 
-/*
+
      L := [ ]; 
-     T := Tensor (Forms, 2, 1);
      for u in U do
           v := Eltseq (u);
-          Fu := [ ((v[j] * A.1) @ f) * Forms[j] : j in [1..n] ];
-          Tu := Tensor (Fu, 2, 1);
-          isit, g := IsIsometric (T, Tu);
+          uForms := [ ((v[j] * A.1) @ f) * Forms[j] : j in [1..n] ];
+          isit, g := __IsIsometric_Hermitian (Forms, uForms, Autos);
           if isit then
-               assert forall { j : j in [1..n] | g * Forms[j] * Transpose (g) eq Fu[j] };
+assert forall { j : j in [1..n] | g * Forms[j] * FrobeniusImage (Transpose (g), e) eq uForms[j] };
                Append (~L, g);
           end if;
      end for;
      H := sub < Generic (ISOM) | ISOM , L >;
      "index of isometry group in the intersection:", LMGOrder (H) div LMGOrder (ISOM);
-*/
 
-H := ISOM;
+
+//H := ISOM;
 
 return H;
 
