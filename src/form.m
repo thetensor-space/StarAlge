@@ -370,7 +370,10 @@ SesquilinearForm := function (G)
          return false, _;
      end if;
      BX := Basis (X);
-return true, MatrixAlgebra (BaseRing (G), Degree (G))!BX[1];
+     A := MatrixAlgebra (BaseRing (G), Degree (G))!BX[1];
+     assert exists (a){ b : b in BaseRing (G) | 
+        (b ne 0) and (FrobeniusImage (b*A, f) eq Transpose (b*A)) };
+return true, a * A;
 end function;
 
 

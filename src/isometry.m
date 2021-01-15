@@ -33,7 +33,7 @@ intrinsic IsometryGroup (S::SeqEnum :
   			    //Autos := [0 : i in [1..#S]],
                             Autos := [0 : i in [1..#Set (S)]],
 			    DisplayStructure := false,
-          Adjoint := 0
+                Adjoint := 0
                         ) -> GrpMat
 
   { Find the group of isometries of the system of reflexive forms }
@@ -283,6 +283,7 @@ intrinsic ClassicalIntersection (S::SeqEnum : Forms := [], Autos := [] ) -> GrpM
                if (not flag) then
                   flag, F := SesquilinearForm (X);
                   require flag : "argument is not a list of classical groups";
+                  
 // added by PAB on 7/24/2020 as temp fix
 assert Degree (k) mod 2 eq 0;
 auto := Degree (k) div 2;
@@ -349,24 +350,240 @@ return I;
 end intrinsic;
 
 
-__DerivedSubgroup_APPROX := function (G)
-  X := [ (Random (G), Random (G)) : i in [1..5] ];
-return sub < Generic (G) | X >;
-end function;
 
 /*
-   ADDED BY PAB ON 7/22/2020.
+   Added by PAB ON 7/22/2020. Extended to conformal unitary groups on 01/14/2021
 
-   Notes: a basic version of the function we will perhaps eventually want.
+   Notes: at present all (conformal) classical groups must be of the same basic type 
+   (either they all preserve a bilinear form, or they all preserve an Hermitian form). 
 
    Given: a list of groups G, each of which preserves a sesquilinear form up
    to scalar multiple, and each of which also contains the full isometry 
-   group preserving that form. (We will likely want to relax the latter 
-   condition eventually.)
+   group preserving that form. 
+   
+   (We will likely want to relax the latter condition eventually.)
 
    Output: the intersection of the groups in the list.
 */
 
+__VecToMat := function (x, a, b)
+  X := Matrix (BaseRing (x), a, a, Eltseq (x)[1..(a^2)]);
+  Y := Matrix (BaseRing (x), b, b, Eltseq (x)[(a^2+1)..(a^2+b^2)]);
+return X, Y;
+end function;
+
+__MyBasicTransporter := function (M, N)
+  d := Degree (Parent (Matrix (M)));
+  K := BaseRing (Parent (Matrix (M)));
+  A := M;
+  // solve the system of Sylvester equations
+  mat := ZeroMatrix (K, 2*d^2, d^2);
+  for j in [1..d] do
+    InsertBlock(~mat, A, d*(j-1)+1, d*(j-1)+1 );
+  end for;
+  delete A;
+  slicedforms := [ ExtractBlock (-Transpose (N), 1, i, d, 1) : i in [1..d] ];
+  for i in [1..d] do
+	  for k in [1..d] do
+	    InsertBlock(~mat, slicedforms[i], d*(k-1)+d^2+1, d*(i-1)+k );
+	  end for;
+  end for;
+  delete slicedforms;
+  sol := Nullspace (mat);
+  // convert into matrices 
+  pairs := [ ];
+  for i in [1..Ngens (sol)] do
+    X, Y := __VecToMat (sol.i, d, d);
+    assert X * M eq N * Transpose (Y);
+    Append (~pairs, [X,Y]);
+  end for;
+return pairs;
+end function;
+
+__MyTransporter := function (Phi, Psi)
+  d := Degree (Parent (Matrix (Phi[1])));
+  K := BaseRing (Parent (Matrix (Phi[1])));
+  MS := KMatrixSpace (K, 2*d, 2*d);
+  S := MS;
+  for i in [1..#Phi] do
+    P := __MyBasicTransporter (Phi[i], Psi[i]);
+    S meet:= sub < MS | [ MS!DiagonalJoin (P[j][1], P[j][2]) : j in [1..#P] ] >;
+  end for;
+  if Dimension (S) eq 0 then 
+    return false, _, _;
+  end if;
+  found := false;
+  LIMIT := 100;
+  count := 0;
+  while (not found) and (count lt LIMIT) do
+    count +:= 1;
+    s := Random (S);
+    U := ExtractBlock (s, 1, 1, d, d);
+    V := ExtractBlock (s, d+1, d+1, d, d);
+    assert forall { i : i in [1..#Phi] |  U * Phi[i] eq Psi[i] * Transpose (V) };
+    if (Rank (U) eq d) and (Rank (V) eq d) then
+      found := true;
+    end if;
+  end while;
+  if found then
+    return true, U, V;
+  else
+    return false, _, _;
+  end if;
+end function;
+
+__GetForms := function (grps)
+  EXP := [ ];
+  FORMS := [ ];
+  for i in [1..#grps] do
+    G := grps[i];
+    flag, M := BilinearForm (G);
+    if flag then
+      assert forall { A : A in Generators (G) | A * M * Transpose (A) eq M };
+      Append (~FORMS, M);
+      Append (~EXP, 0);
+    else
+      flag, M := SesquilinearForm (G);
+      if flag then
+        K := BaseRing (G);  assert Degree (K) mod 2 eq 0;
+        f := Degree (K) div 2;
+        assert forall { A : A in Generators (G) | 
+                            FrobeniusImage (A, f) * M * Transpose (A) eq M };
+        Append (~FORMS, M);
+        Append (~EXP, f);
+      else
+        return false, _, _;
+      end if;
+    end if;
+  end for;
+return true, FORMS, EXP;
+end function;
+
+
+intrinsic ConformalIntersection (S::SeqEnum) -> GrpMat
+
+  { Find the intersection of a collection of conformal classical groups. }
+
+     require forall { G : G in S | Type (G) eq GrpMat } :
+        "elements of argument are not matrix groups";
+  
+     K := BaseRing (S[1]);
+     n := #S;
+     d := Degree (S[1]);
+     
+     require Characteristic (K) ne 2 : 
+        "base ring must be a finite field of odd characteristic";
+         
+     require forall { i : i in [2..#S] | BaseRing (S[i]) eq K } :
+        "groups must act on the same module";
+  
+     require forall { i : i in [2..#S] | Degree (S[i]) eq d } :
+        "groups must act on the same module"; 
+         
+         /* 
+            the hypothesis on the input ensures that the derived
+            subgroup of each group in S preserves a unique form.
+         */
+ttt := Cputime ();
+         DS := [ DerivedGroupMonteCarlo (X) : X in S ]; 
+         flag, Forms, Autos := __GetForms (DS);
+"time to get forms:", Cputime (ttt);
+         
+         require flag : "each group must preserve a reflexive form up to scalar";
+         
+         require #Set (Autos) eq 1 : 
+         "(temporary) forms must be all bilinear or all Hermitian";
+         EXP := Autos[1];
+         if EXP eq 0 then
+           k := K;
+         else
+           k := GF (Characteristic (K)^EXP);
+           assert (#k lt #K) and (k subset K);
+         end if;
+      
+     /* 
+        each group in S induces a subgroup of scalars on the 1-space spanned by its form;
+        hence, the entire list S defines a subgroup of B := (k^*)^n;
+        this is the "outer" group of pseudo-isometries we will try to lift
+     */
+ttt := Cputime ();
+     A, f := MultiplicativeGroup (k);
+     B, i := DirectSum ([ A : j in [1..n] ]);
+     Y := [ ];
+     for j in [1..n] do
+          G := S[j];
+          for s in [1..Ngens (G)] do
+               M := FrobeniusImage (G.s, EXP) * Forms[j] * Transpose (G.s) * Forms[j]^-1;
+               require IsScalar (M) : "groups must preserve a form up to scalar";
+               Append (~Y, (M[1][1] @@ f) @ i[j]);
+          end for;
+     end for;
+     U := sub < B | Y >;
+"time to compute U:", Cputime (ttt);
+
+     /* find intersection of full isometry subgroups of these groups */
+ttt := Cputime ();
+     ISOM := IsometryGroup (Forms : Autos := Autos, DisplayStructure := false);
+     assert forall { i : i in [1..#Forms] | forall { A : A in Generators (ISOM) | 
+                     FrobeniusImage (A, Autos[i]) * Forms[i] * Transpose (A) eq Forms[i]
+                  } };
+"time to compute isometries:", Cputime (ttt);
+                  
+     /* try to lift outer pseudo-isometries */
+     L := [ ];
+T_TIMES := [];
+A_TIMES := [];
+I_TIMES := [];
+count := 0;
+     for u in U do
+count +:= 1;
+if count mod 10 eq 0 then "count =", count; end if;
+          v := Eltseq (u);
+          Fu := [ ((v[j] * A.1) @ f) * Forms[j] : j in [1..n] ];
+ttt := Cputime ();
+          isit, U, V := __MyTransporter (Forms, Fu);
+Append (~T_TIMES, Cputime (ttt));
+          if isit then
+ttt := Cputime ();
+            ADJ := AdjointAlgebra (Fu : Autos := Autos);
+Append (~A_TIMES, Cputime (ttt));
+            st := ADJ`Star;
+            // ensure * on ADJ behaves as it should
+            assert forall { X : X in Generators (ADJ) | forall { F : F in Fu | 
+              FrobeniusImage (X, EXP) * F eq F * Transpose (X @ st) } };
+            // ensure U and V satisfy necessary condition
+            assert forall { i : i in [1,2] | U * Forms[i] eq Fu[i] * Transpose (V) };
+            U := FrobeniusImage (U, EXP);
+            assert forall { i : i in [1,2] | 
+                  FrobeniusImage(U, EXP) * Forms[i] eq Fu[i] * Transpose (V) };
+            X := (U * V)^-1;
+            // ensure X behaves as it should
+            assert X in ADJ;
+            assert X @ st eq X;
+ttt := Cputime ();
+            isit, D := InverseNorm (ADJ, X); assert isit; 
+Append (~I_TIMES, Cputime (ttt));
+            // ensure D behaves as it should
+            assert (D @ st) * D eq X;
+            g := D * U;
+            // ensure g is an isometry
+            assert forall { i : i in [1,2] | 
+               FrobeniusImage (g, EXP) * Forms[i] * Transpose (g) eq Fu[i] };
+               Append (~L, g);
+          end if;
+     end for;
+"computed", #T_TIMES, "tranporters with average time", (&+ T_TIMES) / #T_TIMES;
+"computed", #A_TIMES, "adjoints with average time", (&+ T_TIMES) / #T_TIMES;
+"computed", #I_TIMES, "inverse norms with average time", (&+ T_TIMES) / #T_TIMES;
+
+     H := sub < Generic (ISOM) | ISOM , L >;
+    
+return H;
+
+end intrinsic;
+
+
+/*
 intrinsic ConformalIntersection (S::SeqEnum) -> GrpMat
 
   { Find the intersection of a collection of conformal classical groups. }
@@ -388,23 +605,13 @@ intrinsic ConformalIntersection (S::SeqEnum) -> GrpMat
      require forall { i : i in [2..#S] | Degree (S[i]) eq d } :
         "groups in argument are not defined on the same module"; 
          
-         /* 
-            the hypothesis on the input ensures that the derived
-            subgroup of each group in S preserves a unique form.
-         */
          DS := [ __DerivedSubgroup_APPROX (X) : X in S ];  // change to DerivedSubgroupMonteCarlo
          Forms := [ ];
          for X in DS do
               flag, F := BilinearForm (X);
- //             require flag : "some group in the list does not preserve a unique form up to scalar";
-              Append (~Forms, F);
+               Append (~Forms, F);
          end for;
       
-     /* 
-        each group in S induces a subgroup of scalars on the 1-space spanned by its form;
-        hence, the entire list S defines a subgroup of B := (k^*)^n;
-        this is the "outer" group of pseudo-isometries we will try to lift
-     */
      A, f := MultiplicativeGroup (k);
      B, i := DirectSum([ A : j in [1..n] ]);
      Y := [ ];
@@ -417,17 +624,15 @@ intrinsic ConformalIntersection (S::SeqEnum) -> GrpMat
           end for;
      end for;
      U := sub < B | Y >;
-     if #U eq 1 then // the groups are all isometry groups
+     if #U eq 1 then 
           return ClassicalIntersection (S);     
      end if;
      "proportion of all scalar lifts we must try:", #U / #B;
      "total:", #U;
 
-     /* find intersection of full isometry subgroups of these groups */
      ISOM := IsometryGroup (Forms : DisplayStructure := false);
 
      L := [ ]; 
-     /* try to lift outer pseudo-isometries */
      T := Tensor (Forms, 2, 1);
      for u in U do
           v := Eltseq (u);
@@ -447,66 +652,15 @@ return H;
 
 end intrinsic;
 
-////////////////////////////////////////////////
-// code added by PAB on 12/15/2020 to handle  // 
-// intersections of conformal unitary groups. //
-////////////////////////////////////////////////
-
-__vector_to_matrix := function(x,a,b)
-	X := Matrix(BaseRing(x), a,a, Eltseq(x)[1..(a^2)]);
-	Y := Matrix(BaseRing(x), b,b, Eltseq(x)[(a^2+1)..(a^2+b^2)]);
-	return X,Y;
-end function;
-
-/*
-	XA - BY = C
-
-	A is s x b x c, 
-	B is a x t x c
-	C is a x b x c
- */
-Adj2 := function( formsA, formsB )
-	c := #formsA;
-	a := Nrows(formsB[1]);
-	b := Ncols(formsA[1]);
-	K := BaseRing(formsA[1]);
-	s := Nrows(formsA[1]);
-	t := Ncols(formsB[1]);
-	A := formsA[1];
-	for i in [2..c] do
-		A := HorizontalJoin(A, formsA[i]);
-	end for;	
-	mat := ZeroMatrix( K, a*s+t*b, a*b*c );
-	for j in [1..a] do
-		InsertBlock(~mat, A, s*(j-1)+1, b*c*(j-1)+1 );
-	end for;
-	delete A;
-	slicedforms := [ [ ExtractBlock(-Transpose(B), 1, i, t, 1) : i in [1..a]] : B in formsB ];
-	for i in [1..a] do
-		for j in [1..c] do
-			for k in [1..b] do
-				InsertBlock(~mat, slicedforms[j][i], t*(k-1)+a*s+1, c*b*(i-1)+b*(j-1)+k );
-			end for;
-		end for;
-	end for;
-	delete slicedforms;	
-return Nullspace(mat);
-end function;
 
 
-/*
-  This is a unitary version of a function in "isom-test.m"
-  in the Aut-Sandbox repo. This all needs to be unified.
-*/
 __IsIsometric_Hermitian := function (S, T, Autos) 
   n := #S;
   d := Nrows (S[1]);
-  /* find U, V of full rank with U * S[i] = T[i] * V^t */
   space := Adj2 (S, T);
   
   if Dimension (space) eq 0 then return false, _; end if;
 
-  //  TBD: This part can surely be made deterministic, a la Brooksbank-Luks
   N := NullSpace (__vector_to_matrix(space.1, d, d));
   for i in [2..Ngens (space)] do
 	  N := N meet NullSpace (__vector_to_matrix(space.i, d, d));
@@ -530,13 +684,11 @@ __IsIsometric_Hermitian := function (S, T, Autos)
 		end if;
   end while;
   if (not found) then
-		// This is Monte Carlo!	 Will need to change.
 		"Monte carlo test of invertible failed.";
 		return false, _;
   end if;
 	 
-  /* solve the adjoint algebra problem */
-  A := AdjointAlgebra (T : Autos := Autos); // Call it on T so it can retrieve pre-computed adj.
+  A := AdjointAlgebra (T : Autos := Autos); 
 assert 
 forall { i : i in [1..Ngens (A)] | 
 forall { j : j in [1..n] | 
@@ -557,19 +709,12 @@ assert forall { i : i in [1..n] | U * S[i] eq T[i] * FrobeniusImage (Transpose (
   isit, a := InverseNorm (A, s);
   if not isit then return false, _; end if;
   
-//  g := a * U;
 g := a * FrobeniusImage (U, e);  
 
 assert
 forall { i : i in [1..n] | 
    FrobeniusImage (g, e) * S[i] * Transpose (g) eq T[i] 
               };
-  
-/*
-assert forall { i : i in [1..n] | 
-   g * S[i] * FrobeniusImage (Transpose (g), Autos[i]) eq T[i] 
-              };
-*/
   	
 return true, FrobeniusImage (GL (Nrows (g), BaseRing (Parent (g)))!g, e);
 
@@ -602,10 +747,6 @@ intrinsic ConformalUnitaryIntersection (S::SeqEnum) -> GrpMat
         
      Autos := [ e : i in [1..n] ];
          
-         /* 
-            the hypothesis on the input ensures that the derived
-            subgroup of each group in S preserves a unique form.
-         */
          DS := [ __DerivedSubgroup_APPROX (X) : X in S ];
          Forms := [ ];
          for X in DS do
@@ -615,11 +756,6 @@ assert forall { x : x in Generators (X) | x * F * Transpose (FrobeniusImage (x, 
               Append (~Forms, F);
          end for;
       
-     /* 
-        each group in S induces a subgroup of scalars on the 1-space spanned by its form;
-        hence, the entire list S defines a subgroup of B := (k^*)^n;
-        this is the "outer" group of pseudo-isometries we will try to lift
-     */
      A, f := MultiplicativeGroup (k);
      B, i := DirectSum([ A : j in [1..n] ]);
      Y := [ ];
@@ -635,7 +771,6 @@ assert forall { x : x in Generators (X) | x * F * Transpose (FrobeniusImage (x, 
      "proportion of all scalar lifts we must try:", #U / #B;
      "total:", #U;
 
-     /* find intersection of full isometry subgroups of these groups */
      ISOM := IsometryGroup (Forms : DisplayStructure := false, Autos := [e : i in [1..n]]);
      ISOM := sub < Generic (ISOM) | [ FrobeniusImage (ISOM.i, e) : i in [1..Ngens (ISOM)] ] >;
      // action twisted again 
@@ -656,9 +791,7 @@ assert forall { j : j in [1..n] | g * Forms[j] * FrobeniusImage (Transpose (g), 
      H := sub < Generic (ISOM) | ISOM , L >;
      "index of isometry group in the intersection:", LMGOrder (H) div LMGOrder (ISOM);
 
-
-//H := ISOM;
-
 return H;
 
 end intrinsic;
+*/
