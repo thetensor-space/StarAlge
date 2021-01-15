@@ -484,10 +484,10 @@ intrinsic ConformalIntersection (S::SeqEnum) -> GrpMat
             the hypothesis on the input ensures that the derived
             subgroup of each group in S preserves a unique form.
          */
-ttt := Cputime ();
+//ttt := Cputime ();
          DS := [ DerivedGroupMonteCarlo (X) : X in S ]; 
          flag, Forms, Autos := __GetForms (DS);
-"time to get forms:", Cputime (ttt);
+//"time to get forms:", Cputime (ttt);
          
          require flag : "each group must preserve a reflexive form up to scalar";
          
@@ -506,7 +506,7 @@ ttt := Cputime ();
         hence, the entire list S defines a subgroup of B := (k^*)^n;
         this is the "outer" group of pseudo-isometries we will try to lift
      */
-ttt := Cputime ();
+//ttt := Cputime ();
      A, f := MultiplicativeGroup (k);
      B, i := DirectSum ([ A : j in [1..n] ]);
      Y := [ ];
@@ -519,34 +519,34 @@ ttt := Cputime ();
           end for;
      end for;
      U := sub < B | Y >;
-"time to compute U:", Cputime (ttt);
+//"time to compute U:", Cputime (ttt);
 
      /* find intersection of full isometry subgroups of these groups */
-ttt := Cputime ();
+//ttt := Cputime ();
      ISOM := IsometryGroup (Forms : Autos := Autos, DisplayStructure := false);
      assert forall { i : i in [1..#Forms] | forall { A : A in Generators (ISOM) | 
                      FrobeniusImage (A, Autos[i]) * Forms[i] * Transpose (A) eq Forms[i]
                   } };
-"time to compute isometries:", Cputime (ttt);
+//"time to compute isometries:", Cputime (ttt);
                   
      /* try to lift outer pseudo-isometries */
      L := [ ];
-T_TIMES := [];
-A_TIMES := [];
-I_TIMES := [];
-count := 0;
+//T_TIMES := [];
+//A_TIMES := [];
+//I_TIMES := [];
+//count := 0;
      for u in U do
-count +:= 1;
-if count mod 10 eq 0 then "count =", count; end if;
+//count +:= 1;
+//if count mod 10 eq 0 then "count =", count; end if;
           v := Eltseq (u);
           Fu := [ ((v[j] * A.1) @ f) * Forms[j] : j in [1..n] ];
-ttt := Cputime ();
+//ttt := Cputime ();
           isit, U, V := __MyTransporter (Forms, Fu);
-Append (~T_TIMES, Cputime (ttt));
+//Append (~T_TIMES, Cputime (ttt));
           if isit then
-ttt := Cputime ();
+//ttt := Cputime ();
             ADJ := AdjointAlgebra (Fu : Autos := Autos);
-Append (~A_TIMES, Cputime (ttt));
+//Append (~A_TIMES, Cputime (ttt));
             st := ADJ`Star;
             // ensure * on ADJ behaves as it should
             assert forall { X : X in Generators (ADJ) | forall { F : F in Fu | 
@@ -560,9 +560,9 @@ Append (~A_TIMES, Cputime (ttt));
             // ensure X behaves as it should
             assert X in ADJ;
             assert X @ st eq X;
-ttt := Cputime ();
+//ttt := Cputime ();
             isit, D := InverseNorm (ADJ, X); assert isit; 
-Append (~I_TIMES, Cputime (ttt));
+//Append (~I_TIMES, Cputime (ttt));
             // ensure D behaves as it should
             assert (D @ st) * D eq X;
             g := D * U;
@@ -572,9 +572,9 @@ Append (~I_TIMES, Cputime (ttt));
                Append (~L, g);
           end if;
      end for;
-"computed", #T_TIMES, "tranporters with average time", (&+ T_TIMES) / #T_TIMES;
-"computed", #A_TIMES, "adjoints with average time", (&+ T_TIMES) / #T_TIMES;
-"computed", #I_TIMES, "inverse norms with average time", (&+ T_TIMES) / #T_TIMES;
+//"computed", #T_TIMES, "tranporters with average time", (&+ T_TIMES) / #T_TIMES;
+//"computed", #A_TIMES, "adjoints with average time", (&+ T_TIMES) / #T_TIMES;
+//"computed", #I_TIMES, "inverse norms with average time", (&+ T_TIMES) / #T_TIMES;
 
      H := sub < Generic (ISOM) | ISOM , L >;
     
