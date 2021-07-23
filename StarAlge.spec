@@ -1,20 +1,20 @@
 {
 	src
 	{
-  	att.m
+  	  att.m
 	  verify.m
-  	prelims.m
+  	  prelims.m
 	  star.m
-  	grpalg.m
+  	  grpalg.m
 	  form.m
 	  centraliser.m
 	  complements.m
 	  norm.m
-    inv-norm.m
- 		simple.m
+          inv-norm.m
+ 	  simple.m
 	  adjoints.m
-  	recognise.m
+  	  recognise.m
 	  isometry.m
-  	perp.m
+  	  perp.m
   }
 }
