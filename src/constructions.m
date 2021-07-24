@@ -612,9 +612,9 @@ RandomStarAlgebraWithRadical := function (d, e)
     F2 := ClassicalForms (G2)`bilinearForm;
     A := AdjointAlgebra ([F1, F2]);
     J := JacobsonRadical (A);
-    if Dimension (J) gt 0 then
+if (Dimension (J) gt 0) and (Dimension (J*J) gt 0) then    // try to get higher class
       found := true;
-    end if;
+end if;
   end while;
   if found then 
     return A;
