@@ -4,6 +4,9 @@
   Implementation of algorithms for isometry tests in the characteristic 2 case.
 */
 
+
+// RadicalUnitarians will be a subroutine once it's been adequately tested.
+
 __trace := function (A, z) return z + z @ A`Star; end function;
 
 __norm := function (A, z) return (z @ A`Star) * z; end function;
@@ -51,5 +54,37 @@ intrinsic RadicalUnitarians (A::AlgMat) -> GrpMat
 assert forall { i : i in [1..Ngens (G)] | G.i @ A`Star * G.i eq Identity (G) };
 
 return G;
+
+end intrinsic;
+
+
+// QuotientByRadical will also be a subroutine ...
+
+__induced_image := function (a, MA, W, f)
+return MA!Matrix ([ (a * (W.i @@ f)) @ f : i in [1..Dimension (W)] ]);
+end function;
+
+intrinsic QuotientByRadical (A::AlgMat) -> AlgMat
+
+{ Form the matrix rep of the *-algebra A/J on J/J^2. }
+
+  J := JacobsonRadical (A);
+  F := BaseRing (A);
+  
+  if Dimension (J) eq 0 then return A; end if;
+  
+  W, f := quo < J | J*J >;
+  m := Dimension (W);
+  MA := MatrixAlgebra (F, m);
+  
+  gens := [ __induced_image (A.i, MA, W, f) : i in [1..Ngens (A)] ];
+  AW := sub < MA | gens >;
+  
+//  pi , pi_inv := __build_homs (A, AW, gens);
+//star_gens := [ __induced_image (A.i @ A`Star, MA, W, f) : i in [1..Ngens (A)] ];
+  
+//return AW, pi, pi_inv;
+
+return AW;
 
 end intrinsic;
