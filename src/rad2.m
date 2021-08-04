@@ -22,14 +22,11 @@ intrinsic RadicalUnitarians (A::AlgMat) -> GrpMat
   one := Identity (A);
 
   J := JacobsonRadical (A);
-  K := J;
-  G := sub < GL (d, F) | [ one + J.i : i in [1..Ngens (J)] ] >;
-
-  // approximate through the layers of the radical
-  while Dimension (K) gt 0 do
   
-  "|G| =", #G;
-  "dim(K) =", Dimension (K);
+  G := sub < GL (d, F) | [ one + J.i : i in [1..Ngens (J)] ] >;
+  // refine G through the layers of the radical
+  K := J;
+  while Dimension (K) gt 0 do
   
     U := J * K;
     
@@ -58,33 +55,50 @@ return G;
 end intrinsic;
 
 
-// QuotientByRadical will also be a subroutine ...
 
-__induced_image := function (a, MA, W, f)
+__SQ_image := function (a, MA, W, f)
 return MA!Matrix ([ (a * (W.i @@ f)) @ f : i in [1..Dimension (W)] ]);
 end function;
 
-intrinsic QuotientByRadical (A::AlgMat) -> AlgMat
+__SQ_preimage := function (s, S, COB, gens)
+  c := Vector (Coordinates (S, s)) * COB;
+return &+ [ c[i] * gens[i] : i in [1..#gens] ];
+end function;
 
-{ Form the matrix rep of the *-algebra A/J on J/J^2. }
+
+
+intrinsic SemisimpleQuotient (A::AlgMat) -> AlgMat , Map , Map
+
+{ Construct a matrix representation for the *-algebra A/J on J/J^2. }
 
   J := JacobsonRadical (A);
   F := BaseRing (A);
   
-  if Dimension (J) eq 0 then return A; end if;
-  
-  W, f := quo < J | J*J >;
-  m := Dimension (W);
-  MA := MatrixAlgebra (F, m);
-  
-  gens := [ __induced_image (A.i, MA, W, f) : i in [1..Ngens (A)] ];
-  AW := sub < MA | gens >;
-  
-//  pi , pi_inv := __build_homs (A, AW, gens);
-//star_gens := [ __induced_image (A.i @ A`Star, MA, W, f) : i in [1..Ngens (A)] ];
-  
-//return AW, pi, pi_inv;
+  if Dimension (J) eq 0 then 
+      return A; 
+  end if;
 
-return AW;
+  // build quotient A/J as associative algebra to lift a basis for it
+  B, g := quo < A | J >;
+  gens := [ b @@ g : b in Basis (B) ];
+  
+  // build the faithful action of A/J on J/J^2
+  W, f := quo < J | J*J >;
+  MA := MatrixAlgebra (F, Dimension (W));
+  induced_gens := [ __SQ_image (gens[i], MA, W, f) : i in [1..#gens] ];
+  S := sub < MA | induced_gens >;
+  assert Dimension (S) eq #gens;
+  AtoS := hom < A -> S | a :-> __SQ_image (a, MA, W, f) >;
+  
+  // build lift from S to A
+  COB := Matrix ([ Coordinates (S, induced_gens[i]) : i in [1..#induced_gens] ])^-1;
+  StoA := hom < S -> A | s :-> __SQ_preimage (s, S, COB, gens) >;
+  
+  // define * on S
+  S`Star := hom < S -> S | s :-> ((s @ StoA) @ A`Star) @ AtoS >;
+  
+return S, AtoS, StoA;
 
 end intrinsic;
+  
+
