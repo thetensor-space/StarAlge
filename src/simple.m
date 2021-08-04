@@ -825,6 +825,7 @@ assert forall { c : c in conformalGenerators |
      SAI_data`primitiveIdempotents := 
        [ x @ psi : x in STAN`StarAlgebraInfo`primitiveIdempotents ];
     
+"here";
      S`StarAlgebraInfo := SAI_data;
      S`StarSimpleInfo := SSI_data;
 
