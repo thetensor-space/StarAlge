@@ -100,5 +100,152 @@ intrinsic SemisimpleQuotient (A::AlgMat) -> AlgMat , Map , Map
 return S, AtoS, StoA;
 
 end intrinsic;
+
+// for testing purposes: build a symmetric matrix of rank r
+RandomSymmetricMatrix := function (F, d, r)
+  Y := Random (MatrixAlgebra (F, r));
+  Xr := Y + Transpose (Y);
+  repeat
+     i := Random ([1..r]);
+     Xr[i][i] := Random (F);
+  until Rank (Xr) eq r;
+  X := MatrixAlgebra (F, d)!0;
+  InsertBlock (~X, Xr, 1, 1);
+  T := Random (GL (d, F));
+return T * X * Transpose (T);
+end function;
+
+/*  
+  stabilizer function requested by James in email 8/4/2021
+
+  Given a polar space V and vector v in V, 
+  compute the stabilizer of v inside Isom(V)
+*/
+
+__MyVectorStabilizerGL := function (u)
+  U := Parent (u);
+  n := Dimension (U);
+  F := BaseRing (U);
+  C := Complement (U, sub < U | u >);
+  T := Matrix ([u] cat Basis (C));
+  one := Identity (MatrixAlgebra (F, n));
+  G := GL (n-1, F);
+  gens := [ GL(n,F)!InsertBlock (one, G.i, 2, 2) : i in [1..Ngens (G)] ];
+  for i in [2..n] do
+    Z := one;
+    Z[i][1] := F!1;
+    Append (~gens, GL(n,F)!Z);
+  end for;
+  gens := [ T^-1 * gens[i] * T : i in [1..#gens] ];
+  assert forall { g : g in gens | u * g eq u };
+return sub < GL (n, F) | gens >;
+end function;
+
+__MyVectorStabilizerNondegenerate := function (U, u)
+
+end function;
+
+
+intrinsic VectorStabilizer (V::ModTupFld, v::ModTupFldElt) -> GrpMat 
+
+{ The stabilizer of v in the group of isometries of the polar space V. }
+
+  require IsPolarSpace (V) : "V must be equipped with an inner product";
+  
+  F := BaseRing (V);
+  d := Dimension (V);
+  X := InnerProductMatrix (V);
+  R := Radical (V);
+  r := Dimension (R);
+
+  if r eq 0 then
+    return __MyVectorStabilizerNondegenerate (V, v);
+  end if;
+
+  if v in R then
+
+    C := Complement (V, R);
+    T := Matrix (Basis (C) cat Basis (R));
+    Y := T * X * Transpose (T);
+
+    // get the part that actually needs to be stabilized
+    vT := v * T^-1;
+    assert forall { i : i in [1..d-r] | vT[i] eq 0 };
+    u := Vector ([ vT[i] : i in [1+d-r..d] ]);
+    H := __MyVectorStabilizerGL (u);
+
+    // add in isometries of nondegenerate block
+    Y0 := ExtractBlock (Y, 1, 1, d-r, d-r);
+    V0 := VectorSpace (F, d-r, Y0);
+    I0 := IsometryGroup (V0);
+
+    // insert as blocks
+    one := Identity (MatrixAlgebra (F, d));
+    gens := [ GL(d,F)!InsertBlock (one, H.i, 1+d-r, 1+d-r) : i in [1..Ngens (H)] ];
+    gens cat:= [ GL(d,F)!InsertBlock (one, I0.i, 1, 1) : i in [1..Ngens (I0)] ];
+
+    // add in unipotent elements
+    for i in [1..d-r] do 
+      for j in [1+d-r..d] do
+        Z := one;
+        Z[i][j] := F!1;
+        Append (~gens, GL(d,F)!Z);
+      end for;
+    end for;
+
+    // check gens are isometries of Y
+    assert forall { g : g in gens | g * Y * Transpose (g) eq Y };
+
+    // check that gens stabilize vT
+    assert forall { g : g in gens | vT * g eq vT };
+
+    S := sub < GL (d, F) | [ T^-1 * g * T : g in gens ] >;
+
+  else
+
+    C := Complement (V, R + sub < V | v >);
+    T := Matrix ([v] cat Basis (C) cat Basis (R));
+    Y := T * X * Transpose (T);
+
+    // get the part that needs to be stabilized
+    Y0 := ExtractBlock (Y, 1, 1, d-r, d-r);
+    V0 := VectorSpace (F, d-r, Y0);
+    H := __MyVectorStabilizerNondegenerate (V0, V0.1);   // v is 1st basis vector
+
+    // insert as blocks
+    one := Identity (MatrixAlgebra (F, d));
+    gens := [ GL(d,F)!InsertBlock (one, H.i, 1, 1) : i in [1..Ngens (H)] ];
+    // add in GL elements for radical
+    G := GL (r, F);
+    gens cat:= [ GL(d,F)!InsertBlock (one, G.i, 1+d-r, 1+d-r) : i in [1..Ngens (G)] ];
+
+    // add in unipotent elements
+    for i in [2..d-r] do    // not for 1st basis element
+      for j in [1+d-r..d] do
+        Z := one;
+        Z[i][j] := F!1;
+        Append (~gens, GL(d,F)!Z);
+      end for;
+    end for;
+
+    // check gens are isometries of Y
+    assert forall { g : g in gens | g * Y * Transpose (g) eq Y };
+
+    // check that gens stabilize v*T
+    assert forall { g : g in gens | v * T * g eq v * T };
+
+    S := sub < GL (d, F) | [ T^-1 * g * T : g in gens ] >;
+  
+  end if;
+
+  // sanity check that S is a subgroup of Isom(V)
+  assert forall { i : i in [1..Ngens (S)] | IsIsometry (V, S.i) };
+
+  // sanity check that S stabilizes v
+  assert forall { i : i in [1..Ngens (S)] | v * S.i eq v };
+
+return S;
+
+end intrinsic;
   
 
