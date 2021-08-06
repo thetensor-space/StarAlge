@@ -141,7 +141,62 @@ __MyVectorStabilizerGL := function (u)
 return sub < GL (n, F) | gens >;
 end function;
 
+
 __MyVectorStabilizerNondegenerate := function (U, u)
+
+  n := Dimension (U);
+  F := BaseRing (U);
+
+  // case 1: u is anisotropic
+  if InnerProduct (u, u) ne 0 then
+"<info> v anisotropic";
+    W := OrthogonalComplement (U, sub<U|u>);
+    assert Dimension (W) eq n-1;
+    T := Matrix ([u] cat Basis (W));
+    X := InnerProductMatrix (U);
+    Y := T * X * Transpose (T);
+    Y0 := ExtractBlock (Y, 2, 2, n-1, n-1);
+    W0 := VectorSpace (F, n-1, Y0);
+    G := IsometryGroup (W0);
+    one := Identity (MatrixAlgebra (F, n));
+    gens := [ GL(n,F)!InsertBlock (one, G.i, 2, 2) : i in [1..Ngens (G)] ];
+
+  // case 2: u is isotropic
+  else
+"<info> v isotropic";
+    v := HyperbolicPair (U, u);
+    W := OrthogonalComplement (U, sub<U|u,v>);
+    assert Dimension (W) eq n-2;
+    T := Matrix ([u] cat Basis (W) cat [v]);
+    X := InnerProductMatrix (U);
+    Y := T * X * Transpose (T);
+    Y0 := ExtractBlock (Y, 2, 2, n-2, n-2);
+    W0 := VectorSpace (F, n-2, Y0);
+    G := IsometryGroup (W0);
+    one := Identity (MatrixAlgebra (F, n));
+    gens := [ GL(n,F)!InsertBlock (one, G.i, 2, 2) : i in [1..Ngens (G)] ];
+    for i in [1..n-2] do
+      Z := one;
+      y := W0.i;
+      x := y * Y0;
+      InsertBlock (~Z, Transpose (Matrix (x)), 2, 1);
+      InsertBlock (~Z, Matrix (y), n, 2);
+      Append (~gens, GL(n,F)!Z);
+    end for;
+
+  end if;
+
+  gens := [ T^-1 * gens[i] * T : i in [1..#gens] ];
+
+  // check gens fix u
+  assert forall { g : g in gens | u * g eq u };
+
+  // check gens are isometries of U
+Ngens (G);
+[ IsIsometry (U, gens[i]) : i in [1..#gens] ];
+  assert forall { g : g in gens | IsIsometry (U, g) };
+
+return sub < GL (n, F) | gens >;
 
 end function;
 
@@ -163,6 +218,8 @@ intrinsic VectorStabilizer (V::ModTupFld, v::ModTupFldElt) -> GrpMat
   end if;
 
   if v in R then
+
+  "<info> v in R";
 
     C := Complement (V, R);
     T := Matrix (Basis (C) cat Basis (R));
@@ -203,6 +260,8 @@ intrinsic VectorStabilizer (V::ModTupFld, v::ModTupFldElt) -> GrpMat
 
   else
 
+  "<info> v outside R";
+
     C := Complement (V, R + sub < V | v >);
     T := Matrix ([v] cat Basis (C) cat Basis (R));
     Y := T * X * Transpose (T);
@@ -232,7 +291,7 @@ intrinsic VectorStabilizer (V::ModTupFld, v::ModTupFldElt) -> GrpMat
     assert forall { g : g in gens | g * Y * Transpose (g) eq Y };
 
     // check that gens stabilize v*T
-    assert forall { g : g in gens | v * T * g eq v * T };
+    assert forall { g : g in gens | v * T^-1 * g eq v * T^-1 };
 
     S := sub < GL (d, F) | [ T^-1 * g * T : g in gens ] >;
   
