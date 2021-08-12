@@ -55,6 +55,7 @@ return G;
 end intrinsic;
 
 
+/* This is a general intrinsic that should be moved elsewhere */
 
 __SQ_image := function (a, MA, W, f)
 return MA!Matrix ([ (a * (W.i @@ f)) @ f : i in [1..Dimension (W)] ]);
@@ -101,19 +102,6 @@ return S, AtoS, StoA;
 
 end intrinsic;
 
-// for testing purposes: build a symmetric matrix of rank r
-RandomSymmetricMatrix := function (F, d, r)
-  Y := Random (MatrixAlgebra (F, r));
-  Xr := Y + Transpose (Y);
-  repeat
-     i := Random ([1..r]);
-     Xr[i][i] := Random (F);
-  until Rank (Xr) eq r;
-  X := MatrixAlgebra (F, d)!0;
-  InsertBlock (~X, Xr, 1, 1);
-  T := Random (GL (d, F));
-return T * X * Transpose (T);
-end function;
 
 /*  
   stabilizer function requested by James in email 8/4/2021
@@ -149,7 +137,6 @@ __MyVectorStabilizerNondegenerate := function (U, u)
 
   // case 1: u is anisotropic
   if InnerProduct (u, u) ne 0 then
-"<info> v anisotropic";
     W := OrthogonalComplement (U, sub<U|u>);
     assert Dimension (W) eq n-1;
     T := Matrix ([u] cat Basis (W));
@@ -163,7 +150,6 @@ __MyVectorStabilizerNondegenerate := function (U, u)
 
   // case 2: u is isotropic
   else
-"<info> v isotropic";
     v := HyperbolicPair (U, u);
     W := OrthogonalComplement (U, sub<U|u,v>);
     assert Dimension (W) eq n-2;
@@ -173,16 +159,29 @@ __MyVectorStabilizerNondegenerate := function (U, u)
     Y0 := ExtractBlock (Y, 2, 2, n-2, n-2);
     W0 := VectorSpace (F, n-2, Y0);
     G := IsometryGroup (W0);
+    M := GModule (G);
+    if IsIrreducible (M) then 
+      N := M;
+    else
+      S := Submodules (M);
+        // space of isotropic vectors ...
+      assert exists (N){ J : J in S | Dimension (J) eq n-3 };  
+    end if;
+    vecs := [ W0!(M!(N.i)) : i in [1..Dimension (N)] ];
     one := Identity (MatrixAlgebra (F, n));
     gens := [ GL(n,F)!InsertBlock (one, G.i, 2, 2) : i in [1..Ngens (G)] ];
-    for i in [1..n-2] do
+    for i in [1..Dimension (N)] do
       Z := one;
-      y := W0.i;
+      y := vecs[i];
       x := y * Y0;
       InsertBlock (~Z, Transpose (Matrix (x)), 2, 1);
       InsertBlock (~Z, Matrix (y), n, 2);
       Append (~gens, GL(n,F)!Z);
     end for;
+    
+    // for good measure add center of unipotent radical ... although not needed 
+    Z := one;   Z[n][1] := F!1;
+    Append (~gens, Z);
 
   end if;
 
@@ -192,14 +191,14 @@ __MyVectorStabilizerNondegenerate := function (U, u)
   assert forall { g : g in gens | u * g eq u };
 
   // check gens are isometries of U
-Ngens (G);
-[ IsIsometry (U, gens[i]) : i in [1..#gens] ];
   assert forall { g : g in gens | IsIsometry (U, g) };
 
 return sub < GL (n, F) | gens >;
 
 end function;
 
+
+/* PAB: probably should not be an intrinsic */
 
 intrinsic VectorStabilizer (V::ModTupFld, v::ModTupFldElt) -> GrpMat 
 
@@ -216,10 +215,12 @@ intrinsic VectorStabilizer (V::ModTupFld, v::ModTupFldElt) -> GrpMat
   if r eq 0 then
     return __MyVectorStabilizerNondegenerate (V, v);
   end if;
+  
+  if v eq 0 then 
+    return IsometryGroup (V);
+  end if;
 
   if v in R then
-
-  "<info> v in R";
 
     C := Complement (V, R);
     T := Matrix (Basis (C) cat Basis (R));
@@ -259,8 +260,6 @@ intrinsic VectorStabilizer (V::ModTupFld, v::ModTupFldElt) -> GrpMat
     S := sub < GL (d, F) | [ T^-1 * g * T : g in gens ] >;
 
   else
-
-  "<info> v outside R";
 
     C := Complement (V, R + sub < V | v >);
     T := Matrix ([v] cat Basis (C) cat Basis (R));
