@@ -56,6 +56,9 @@ intrinsic IsometryGroup (S::SeqEnum :
      n := #S;
      MA := Parent (S[1]);
      k := BaseRing (MA);
+
+// EOB addition to deal with 0 matrix 
+if n eq 1 and S[1] eq 0 * S[1] then return GL(Nrows (S[1]), k); end if;
      
      require Type (k) eq FldFin : 
         "Base ring of argument 1 is not a finite field.";

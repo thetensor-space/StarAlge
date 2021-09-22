@@ -403,85 +403,6 @@ return crossed_map_BM (B, -1);
 end function;
 
 
-
-   /*--- 
-   Here are some sample test functions for building
-   systems of forms having isometry groups with
-   prescribed structure.
-
-   These are in fact the constructions used in:
-
-   P.A. Brooksbank and J.B. Wilson, Computing isometry
-   groups of hermitian maps, to appear in TAMS.
-   ---*/
-
-
-/*
-   Build some examples that have semisimple structure
-   
-   O(2,5) \oplus U(3,5)
-   
-   and have a radical of nilpotence degree 7.
-   
-   These examples are used, among other things, to
-   illustrate the power series technique to compute
-   the unipotent radical; notice that the nilpotence
-   degree exceeds the characteristic, so usual
-   exponentiation of nilpotent elements will not work.
-*/
-
-TAMS_test1 := function (runs)
-     times := [ ];
-     for i in [1..runs] do
-"test 1. run ", i;	
-	 BMO := OrthogonalTypeBilinearMap (GF (5), 2 : 
-                   theta := ALTERNATING, poly := [0,0,0,0,0,0,0,1] );
-	 BMU := UnitaryTypeBilinearMap (GF (5), 3 : 
-                   theta := ALTERNATING, poly := [0,0,1] );
-	 BMOr := RandomConjugateOfBilinearMap (BMO);
-	 BMUr := RandomConjugateOfBilinearMap (BMU);
-	 BMtest1 := DirectSumOfBilinearMaps (BMOr, BMUr);
-	 BMtest1r := RandomConjugateOfBilinearMap (BMtest1);	
-         Forms := BilinearMapToSystemOfForms (BMtest1r);
-	 t := Cputime ();
-	 isom_test1 := IsometryGroup (Forms);
-	 Append (~times, Cputime (t));
-"time: ", times[i];
-     end for;
-return times;
-end function;
-
-
-/*
-   A similar sort of example. This time the prescribed structure is
-   
-   Sp(4,9) \oplus X(4,9)
-   
-   with a radical of nilpotence degree 5. Once again, observe that
-   the nilpotence degree exceeds the characteristic.
-*/
-
-TAMS_test2 := function (runs)
-     times := [ ];
-     for i in [1..runs] do
-"test 2, run ", i;	
-         BMSp := SymplecticTypeBilinearMap (GF(9), 2 : poly := [0,0,0,0,1]);
-	 BMX := ExchangeTypeBilinearMap (GF(9), 4 : theta := ALTERNATING);
-	 BMSpr := RandomConjugateOfBilinearMap (BMSp);
-	 BMXr := RandomConjugateOfBilinearMap (BMX);
-	 BMtest2 := DirectSumOfBilinearMaps (BMSpr, BMXr);
-	 BMtest2r := RandomConjugateOfBilinearMap (BMtest2);
-         Forms := BilinearMapToSystemOfForms (BMtest2r);
-  	 t := Cputime ();
-	 isom_test2 := IsometryGroup (Forms);
-	 Append (~times, Cputime (t));
-"time: ", times[i];
-     end for;
-return times;
-end function;
-
-
-
    /*--- finally some functions for constructing random examples ---*/
 
 
@@ -594,4 +515,66 @@ RandomSystemOfForms := function (d, k, r, ranks)
 assert forall { i : i in [1..#Forms] | 
     Transpose (Forms[i]) eq Signs[i] * FrobeniusImage (Forms[i], Autos[i]) };
 return Forms, Autos;
+end function;
+
+/*
+  Added by PAB on 8/23/2021 to provide a source of examples 
+  of *-algebras in characteristic 2 having non-trivial radicals
+*/
+RandomStarAlgebraWithRadical := function (d, e)
+  q := 2^e;
+  G1 := Sp (d, q);
+  F1 := ClassicalForms (G1)`bilinearForm;
+  found := false;
+  count := 0;
+  LIMIT := 1000;
+  while count lt LIMIT and not found do
+    G2 := RandomConjugate (G1);
+    F2 := ClassicalForms (G2)`bilinearForm;
+    A := AdjointAlgebra ([F1, F2]);
+    J := JacobsonRadical (A);
+if (Dimension (J) gt 0) and (Dimension (J*J) gt 0) then    // try to get higher class
+      found := true;
+end if;
+  end while;
+  if found then 
+    return A;
+  else
+    "failed to find an example after", LIMIT, "tries";
+    return false;
+  end if;
+end function;
+
+// this is the example from the paper; bit of a hack
+__star_image := function (M, t, one)
+  N := M;
+  InsertBlock (~N, (one + t) * ExtractBlock (M, 1, 3, 2, 2), 3, 1);
+  InsertBlock (~N, (one + t) * ExtractBlock (M, 3, 1, 2, 2), 1, 3);
+return N;
+end function;
+
+Example10 := function (e)
+  K := GF (2^e);
+  ma := MatrixAlgebra (K, 2);
+    // make truncated poly algebra as algebra of 2 x 2 matrices
+  t := ma![0,1,0,0];
+  one := Identity (ma);
+    // build 2 x 2 matrix algebra over this ring
+  MA := MatrixAlgebra (K, 4);
+  z := MA!0;
+  A := sub < MA | 
+             [
+             InsertBlock (z, t, 1, 1),
+             InsertBlock (z, one, 1, 1),
+             InsertBlock (z, t, 1, 3),
+             InsertBlock (z, one, 1, 3),
+             InsertBlock (z, t, 3, 1),
+             InsertBlock (z, one, 3, 1),
+             InsertBlock (z, t, 3, 3),
+             InsertBlock (z, one, 3, 3)
+             ]
+           >;
+  star := hom < A -> A | M :-> __star_image (M, t, one) >;
+  A`Star := star;
+return A;
 end function;

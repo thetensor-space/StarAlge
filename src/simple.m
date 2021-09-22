@@ -725,23 +725,21 @@ assert forall { i : i in [1..Ngens (S)] | AutK * S.i * AutK^-1 in S };
             return false, _, _, _;
          end if;
 
+
          /* identify the classical type of <X> */
          if (bt eq 1) then
 
-            if X eq Transpose (X) then 
-	       if Nrows (X) eq 1 then
-	           name := "orthogonalcircle";
+            if (X eq Transpose (X)) and (Characteristic (k) ne 2) then 
+	            if Nrows (X) eq 1 then
+	                name := "orthogonalcircle";
                    C := MatrixAlgebra (K, 1)![1];
                else
-
                    name, C := IdentifyOrthogonalType (X);
                end if;
             else
                assert X eq -Transpose (X);
                name := "symplectic";
-
                C := __transform_form (X, Nrows (X), #K, name);
-
             end if;
 
          else

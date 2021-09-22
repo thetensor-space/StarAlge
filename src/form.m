@@ -13,6 +13,21 @@ import "verify.m": IsIsometry, IsSimilarity;
 import "prelims.m": EltseqWithBasis;
 
 
+intrinsic RandomSymmetricMatrix (F::FldFin, d::RngIntElt, r::RngIntElt) -> AlgMatElt
+  { Build a random symmetric d x d matrix of rank r with entries in F. }
+  Y := Random (MatrixAlgebra (F, r));
+  Xr := Y + Transpose (Y);
+  repeat
+     i := Random ([1..r]);
+     Xr[i][i] := Random (F);
+  until Rank (Xr) eq r;
+  X := MatrixAlgebra (F, d)!0;
+  InsertBlock (~X, Xr, 1, 1);
+  T := Random (GL (d, F));
+return T * X * Transpose (T);
+end intrinsic;
+
+
 /*
    We assume here that: 
    <F> is (the matrix representing) a nondegenerate reflexive form; 
