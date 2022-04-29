@@ -16,6 +16,7 @@
   	  recognise.m
 	  isometry.m
   	  perp.m
-		rad2.m
+                char2/util.m
+		char2/radical.m
   }
 }
