@@ -15,9 +15,9 @@ RandomStarAlgebraWithRadical := function (d, e)
     F2 := ClassicalForms (G2)`bilinearForm;
     A := AdjointAlgebra ([F1, F2]);
     J := JacobsonRadical (A);
-if (Dimension (J) gt 0) and (Dimension (J*J) gt 0) then    // try to get higher class
-      found := true;
-end if;
+    if (Dimension (J) gt 0) and (Dimension (J*J) gt 0) then    
+         found := true;
+    end if;
   end while;
   if found then 
     return A;
@@ -27,13 +27,14 @@ end if;
   end if;
 end function;
 
-// this is the example from the paper; bit of a hack
-__star_image := function (M, t, one)
-  N := M;
-  InsertBlock (~N, (one + t) * ExtractBlock (M, 1, 3, 2, 2), 3, 1);
-  InsertBlock (~N, (one + t) * ExtractBlock (M, 3, 1, 2, 2), 1, 3);
-return N;
-end function;
+
+     // this is the example from the paper; bit of a hack
+     __star_image := function (M, t, one)
+          N := M;
+          InsertBlock (~N, (one + t) * ExtractBlock (M, 1, 3, 2, 2), 3, 1);
+          InsertBlock (~N, (one + t) * ExtractBlock (M, 3, 1, 2, 2), 1, 3);
+     return N;
+     end function;
 
 Example10 := function (e)
   K := GF (2^e);
@@ -61,18 +62,3 @@ Example10 := function (e)
 return A;
 end function;
 
-
-// test of vector stabilizer subroutine
-k := 2;
-K := GF (2^k);
-RUNS := 10;
-
-for i in [1..RUNS] do
-    d := Random ([4..10]);
-    r := Random ([4..d]);
-"d =", d, "   r =", r;
-    X := RandomSymmetricMatrix (K, d, r);
-    V := VectorSpace (K, d, X);
-    v := Random (V);
-    H := VectorStabilizer (V, v);
-end for;

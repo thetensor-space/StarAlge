@@ -1,13 +1,19 @@
 /* 
-  Created by PAB on 7/23/2021.
-
-  Implementation of algorithms for isometry tests in the characteristic 2 case.
+ * Created by PAB on 7/23/2021. 
+ * Modified by PAB on 4/29/2022.
 */
 
 import "util.m" : StarDelta;
 
 
-
+/*
+ * Given a *-algebra, A, find the subgroup of the unitarian 
+ * group A^# that lies in 1 + J(A). This method replaces the
+ * power series trick used in the odd characteristic case.
+ *
+ * Note: in a future code overhaul there should be a single 
+ * intrinsic that applies to *-algebras in all characteristics.
+*/
 intrinsic RadicalUnitarians (A::AlgMat) -> GrpMat
 
   { Return the subgroup of A^# lying within 1 + J(A). }
