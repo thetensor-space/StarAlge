@@ -499,7 +499,7 @@ intrinsic IsometryGroup (M::AlgMatElt : Auto := 0) -> GrpMat
             type := IdentifyOrthogonalType (F);
          end if;
      end if;
-     "type =", type;
+     // "type =", type;
 
      /*
        transform <F> to standard form and hence obtain
