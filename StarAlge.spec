@@ -8,15 +8,16 @@
   	  grpalg.m
 	  form.m
 	  centraliser.m
-	  complements.m
+	  //complements.m
+	       decomp.mag
 	  norm.m
-          inv-norm.m
+      inv-norm.m
  	  simple.m
 	  adjoints.m
   	  recognise.m
 	  isometry.m
   	  perp.m
-                char2/util.m
-		char2/radical.m
+           char2/util.m
+		   char2/radical.m
   }
 }

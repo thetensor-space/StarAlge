@@ -3,8 +3,8 @@
  *  Examples and constructions for testing in characteristic 2.
 */
 
-RandomStarAlgebraWithRadical := function (d, e)
-  q := 2^e;
+RandomStarAlgebraWithRadical := function (d, p, e)
+  q := p^e;
   G1 := Sp (d, q);
   F1 := ClassicalForms (G1)`bilinearForm;
   found := false;
