@@ -20,11 +20,15 @@ intrinsic RadicalUnitarians (A::AlgMat) -> GrpMat
 
   d := Degree (A);
   F := BaseRing (A);
+  f := Degree (F);
+  rho := PrimitiveElement (F);
   one := Identity (A);
 
   J := JacobsonRadical (A);
-  
-  G := sub < GL (d, F) | [ one + J.i : i in [1..Ngens (J)] ] >;
+
+// fix the general field case
+  gens := &cat [ [ one + rho^j * J.i : j in [0..f-1] ] : i in [1..Ngens (J)] ];
+  G := sub < GL (d, F) | gens >;
   // refine G through the layers of the radical
   K := J;
   while Dimension (K) gt 0 do

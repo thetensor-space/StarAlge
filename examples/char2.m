@@ -62,3 +62,16 @@ Example10 := function (e)
 return A;
 end function;
 
+// brute force norm group computation for Example 10 ... 
+e := 2;
+A := Example10 (e);
+U := RadicalUnitarians (A);
+G := sub < GL(4,2^e) | [ a : a in A | (a @ A`Star) * a eq Identity (A) ] >;
+assert U subset G;
+J := JacobsonRadical (A);
+V := sub < GL(4,2^e) | [ Identity (A) + z : z in J ] >;
+W := sub < V | [ v : v in V | v @ A`Star * v eq Identity(A) ] >;
+B := StarQuotient (A, J);
+H := sub < GL (Degree (B), BaseRing (B)) | [ b : b in B | (b @ B`Star) * b eq Identity (B) ] >;
+ 
+

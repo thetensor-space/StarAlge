@@ -10,6 +10,7 @@
 	  centraliser.m
 	  //complements.m
 	       decomp.mag
+		   quotients.mag
 	  norm.m
       inv-norm.m
  	  simple.m
