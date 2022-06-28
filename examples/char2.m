@@ -63,7 +63,7 @@ return A;
 end function;
 
 // brute force norm group computation for Example 10 ... 
-e := 2;
+e := 1;
 A := Example10 (e);
 U := RadicalUnitarians (A);
 G := sub < GL(4,2^e) | [ a : a in A | (a @ A`Star) * a eq Identity (A) ] >;

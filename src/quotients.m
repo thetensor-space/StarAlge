@@ -20,3 +20,30 @@ intrinsic StarQuotient (A::AlgMat, P::AlgMat) -> AlgMat
      B`Star := hom <B -> B | b :-> ((((b @@ f) @@ pi) @ A`Star) @ pi) @ f >;
 return B;
 end intrinsic;
+
+__semisimple_proj := function (MS, pos, x)
+     c := Coordinates (MS, MS!x);
+return &+[ c[i] * MS.i : i in [1..pos] ];
+end function;
+
+intrinsic InduceStar (A::AlgMat, S::AlgMat) -> AlgMat
+ { induce the involution of *-algebra A on the semisimple complement S to the 
+   radical J(A) }
+   
+     require S subset A : "S must be a subring of A";
+   
+     J := JacobsonRadical (A);
+     
+     require Dimension(J meet S) eq 0 : 
+         "S must be a complement to the Jacobson radical of A";
+
+     MS := KMatrixSpace (BaseRing (A), Degree (A), Degree (A));
+     space := KMatrixSpaceWithBasis ([MS!s : s in Basis (S)] cat [MS!j : j in Basis (J)]);
+     pi := hom < A -> S | x :-> S!(&+[ c[i] * space.i : i in [1..Dimension(S)] ]
+                          where c is Coordinates (space, space!x)) >;
+//     pi := hom < A -> S | x :-> S!__semisimple_proj (space, #Basis(S), x) >;
+     dot := hom < S -> S | s :-> (s @ A`Star) @ pi >;
+     S`Star := dot;
+     
+return S;
+end intrinsic;

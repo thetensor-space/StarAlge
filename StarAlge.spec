@@ -8,9 +8,8 @@
   	  grpalg.m
 	  form.m
 	  centraliser.m
-	  //complements.m
-	       decomp.mag
-		   quotients.mag
+	       decomp.m
+	       quotients.m
 	  norm.m
       inv-norm.m
  	  simple.m
