@@ -17,7 +17,7 @@
   	  recognise.m
 	  isometry.m
   	  perp.m
-           char2/util.m
-		   char2/radical.m
+           char2/util.mag
+		   char2/radical.mag
   }
 }
