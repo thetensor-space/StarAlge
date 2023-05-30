@@ -3,7 +3,7 @@
  * Modified by PAB on 4/29/2022.
 */
 
-import "util.m" : StarDelta;
+import "util.mag" : StarDelta;
 
 
 /*

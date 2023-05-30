@@ -18,6 +18,7 @@
 	  isometry.m
   	  perp.m
            char2/util.mag
+		   char2/form.mag
 		   char2/radical.mag
   }
 }

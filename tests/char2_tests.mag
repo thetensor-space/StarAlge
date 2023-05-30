@@ -1,0 +1,39 @@
+// test that quadratic form conversion behaves as expected
+d := 6;
+e := 2;
+K := GF (2^e);
+Q := RandomQuadraticForm (K, d);
+SIGMA := Q + Transpose (Q);
+// use Don Taylor's functions
+VQ := QuadraticSpace (Q);
+ORTH := IsometryGroup (VQ); 
+   // adjust to be isometries in our action
+ORTH := sub < Generic (ORTH) | [ Transpose (ORTH.i) : i in [1..Ngens (ORTH)] ] >;
+VSIGMA := SymplecticSpace (SIGMA);
+ISOM := IsometryGroup (VSIGMA);
+   // adjust to be isometries in our action
+ISOM := sub < Generic (ISOM) | [ Transpose (ISOM.i) : i in [1..Ngens (ISOM)] ] >;
+assert ORTH subset ISOM;
+
+R := QuadraticFormToStarAlgebra (Q);
+gens := [ ];
+for i in [1..Ngens (ORTH)] do
+     A := ORTH.i;
+     M := Transpose (A) * Q * A + Q;
+     assert M eq Transpose(M) and forall { a : a in [1..d] | M[a][a] eq 0 };
+     for a in [1..d-1] do
+          for b in [a+1..d] do
+               M[a][b] := 0;
+          end for;
+     end for;
+     assert (Transpose (A) * Q * A + Q) eq (M + Transpose (M));
+     B := (Transpose (A) * J)^-1 * M;
+     AB := Generic (R)!DiagonalJoin (A, A);
+     InsertBlock (~AB, B, 1, d+1);
+     assert AB in R;
+     assert AB @ R`Star * AB eq Identity (R);
+     Append (~gens, AB);  
+end for;
+
+D := R;
+J, S := WedderburnDecomposition (D);
