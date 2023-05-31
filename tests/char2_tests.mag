@@ -27,7 +27,7 @@ for i in [1..Ngens (ORTH)] do
           end for;
      end for;
      assert (Transpose (A) * Q * A + Q) eq (M + Transpose (M));
-     B := (Transpose (A) * J)^-1 * M;
+     B := (Transpose (A) * SIGMA)^-1 * M;
      AB := Generic (R)!DiagonalJoin (A, A);
      InsertBlock (~AB, B, 1, d+1);
      assert AB in R;
@@ -36,4 +36,6 @@ for i in [1..Ngens (ORTH)] do
 end for;
 
 D := R;
-J, S := WedderburnDecomposition (D);
+J, S := MyWedderburnDecomposition (D);
+Q := J;
+

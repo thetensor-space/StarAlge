@@ -13,13 +13,15 @@
           ( (s^.)^* - s lives in Q )
 */
 
+import "util.mag" : StarTrace;
+
 
 // slight adaptation of familiar function to induce an involution on the complement
 __MWD_dot := function (D, S, MatD, s) 
      e := Dimension (S);
      t := Generic (MatD)!(D!s @ D`Star);
      assert t in MatD;
-     c := Coordinates (MS, t);
+     c := Coordinates (MatD, t);
 return &+ [ c[l] * S.l : l in [1..Ngens(S)] ];
 end function;
 
@@ -33,14 +35,49 @@ MyWedderburnDecomposition := function (D)
                [ MS!Z : Z in Basis (J) ]
                                    );
      S`Star := hom < S -> S | s :-> __MWD_dot (D, S, MatD, s) >;
+     J`Star := hom < J -> J | z :-> z @ D`Star >;
 return J, S;
 end function;
 
 // Given a MyWedderburnDecomposition D = J + S and suitable ideal Q of J,
 // construct a matrix representing the derivation S --> Q / Q^2, 
 // where s |--> (s^.)^* - s (mod Q^2)   ... we have checked this is in Q
+__MD_delta := function (D, S, s)
+return (s @ S`Star) @ D`Star - s;
+end function;
+
 MyDerivation := function (D, J, S, Q)
+
+     // form the matrix for the linear operator <delta> : S --> Q/Q^2
      W, pi := quo < Q | Q * Q >;
-     DELTA := Matrix ([ ((S.j @ S`Star) @ D`Star - S.j) @ pi : j in [1..Ngens (S)] ]);
-return DELTA;
+     dW := Dimension (W);
+     dS := Dimension (S);   assert dS eq Ngens (S);
+     MS := KMatrixSpace (BaseRing (D), dS, dW);
+     DELTA := MS!Matrix ([ __MD_delta (D, S, S.j) @ pi : j in [1..dS] ]);
+
+     // test if <delta> is an inner derivation
+     igens := [ ];   // basis for the space of inner derivations
+     INN_Q := sub < MS | 0 >;
+     I := [ ];
+     for l in [1..dW] do 
+          z := W.l @@ pi;
+          iz := MS!Matrix ([ (S.j * z + z * S.j) @ pi : j in [1..dS] ]);
+          if not iz in INN_Q then   // bit of a hack to ensure a basis
+               Append (~igens, iz);
+               Append (~I, l);
+               INN_Q := sub < MS | igens >;
+          end if;
+     end for;
+     INN_Q := KMatrixSpaceWithBasis (igens);    
+     isit := (DELTA in INN_Q);
+     if isit then
+          c := Coordinates (INN_Q, DELTA);
+          assert DELTA eq &+ [ c[l] * igens[l] : l in [1..#igens] ];
+          z := Q!(&+ [ c[l] * (W.(I[l]) @@ pi) : l in [1..#igens] ]);
+     else 
+          z := 0;
+     end if;
+
+     // TBD: test if <delta> is an inner derivation by a trace 0 element of Q
+return isit, z;
 end function;
