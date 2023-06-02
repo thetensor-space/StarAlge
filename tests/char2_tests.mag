@@ -2,11 +2,11 @@
 d := 6;
 e := 2;
 K := GF (2^e);
-Q := RandomQuadraticForm (K, d);
-SIGMA := Q + Transpose (Q);
+PHI := RandomQuadraticForm (K, d);
+SIGMA := PHI + Transpose (PHI);
 // use Don Taylor's functions
-VQ := QuadraticSpace (Q);
-ORTH := IsometryGroup (VQ); 
+VPHI := QuadraticSpace (PHI);
+ORTH := IsometryGroup (VPHI); 
    // adjust to be isometries in our action
 ORTH := sub < Generic (ORTH) | [ Transpose (ORTH.i) : i in [1..Ngens (ORTH)] ] >;
 VSIGMA := SymplecticSpace (SIGMA);
@@ -15,18 +15,18 @@ ISOM := IsometryGroup (VSIGMA);
 ISOM := sub < Generic (ISOM) | [ Transpose (ISOM.i) : i in [1..Ngens (ISOM)] ] >;
 assert ORTH subset ISOM;
 
-R := QuadraticFormToStarAlgebra (Q);
+R := QuadraticFormToStarAlgebra (PHI);
 gens := [ ];
 for i in [1..Ngens (ORTH)] do
      A := ORTH.i;
-     M := Transpose (A) * Q * A + Q;
-     assert M eq Transpose(M) and forall { a : a in [1..d] | M[a][a] eq 0 };
+     M := Transpose (A) * PHI * A + PHI;
+     assert M eq Transpose (M) and forall { a : a in [1..d] | M[a][a] eq 0 };
      for a in [1..d-1] do
           for b in [a+1..d] do
                M[a][b] := 0;
           end for;
      end for;
-     assert (Transpose (A) * Q * A + Q) eq (M + Transpose (M));
+     assert (Transpose (A) * PHI * A + PHI) eq (M + Transpose (M));
      B := (Transpose (A) * SIGMA)^-1 * M;
      AB := Generic (R)!DiagonalJoin (A, A);
      InsertBlock (~AB, B, 1, d+1);

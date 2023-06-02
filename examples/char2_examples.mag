@@ -1,7 +1,8 @@
-/*
- *  Created on 4/29/2022 by PAB.
- *  Examples and constructions for testing in characteristic 2.
-*/
+/************************************
+ *  Created on 4/29/2022 by PAB.    *
+ *  Examples and constructions of   * 
+ *  *-algebras in characteristic 2. *
+*************************************/
 
 RandomStarAlgebraWithRadical := function (d, p, e)
   q := p^e;
@@ -63,6 +64,7 @@ return A;
 end function;
 
 // brute force norm group computation for Example 10 ... 
+/*
 e := 1;
 A := Example10 (e);
 U := RadicalUnitarians (A);
@@ -73,5 +75,6 @@ V := sub < GL(4,2^e) | [ Identity (A) + z : z in J ] >;
 W := sub < V | [ v : v in V | v @ A`Star * v eq Identity(A) ] >;
 B := StarQuotient (A, J);
 H := sub < GL (Degree (B), BaseRing (B)) | [ b : b in B | (b @ B`Star) * b eq Identity (B) ] >;
- 
+*/
+
 

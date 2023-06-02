@@ -12,40 +12,40 @@ intrinsic RandomQuadraticForm (K::FldFin, d::RngIntElt) -> Mtrx
   { Matrix representing a random quadratic form. }
      assert d mod 2 eq 0;
      repeat
-          Q := UpperTriangularMatrix ([ Random (K) : i in [1..d*(d+1) div 2] ]);
-     until Rank (Q + Transpose (Q)) eq d;
-return Q;
+          PHI := UpperTriangularMatrix ([ Random (K) : i in [1..d*(d+1) div 2] ]);
+     until Rank (PHI + Transpose (PHI)) eq d;
+return PHI;
 end intrinsic;
 
-__QFTSA_dot := function (A, J)
-return J^-1 * Transpose (A) * J;
+__QFTSA_dot := function (A, SIGMA)
+return SIGMA^-1 * Transpose (A) * SIGMA;
 end function;
 
-__QFTSA_star := function (AB, J, X)
-     d := Degree (Parent (J));
+__QFTSA_star := function (AB, SIGMA, X)
+     d := Degree (Parent (SIGMA));
      A := ExtractBlock (AB, 1, 1, d, d);
      assert A eq ExtractBlock (AB, d+1, d+1, d, d);
      B := ExtractBlock (AB, 1, d+1, d, d);
-     A := __QFTSA_dot (A, J);
-     B := __QFTSA_dot (B, J) + X*A + A*X;
+     A := __QFTSA_dot (A, SIGMA);
+     B := __QFTSA_dot (B, SIGMA) + X*A + A*X;
      AB_star := DiagonalJoin (A, A);
      InsertBlock (~AB_star, B, 1, d+1);
 return AB_star;
 end function;
 
-intrinsic QuadraticFormToStarAlgebra (Q::Mtrx) -> AlgMat 
+intrinsic QuadraticFormToStarAlgebra (PHI::Mtrx) -> AlgMat 
   { The *-algebra whose unitarian elements are the isometries of the given quadratic form }
-     d := Degree (Parent (Q));
-     K := BaseRing (Parent (Q));
+     d := Degree (Parent (PHI));
+     K := BaseRing (Parent (PHI));
      require Characteristic (K) eq 2 : "function only needed for characteristic 2 fields";
      ma := MatrixAlgebra (K, d);
      MA := MatrixAlgebra (K, 2*d);
      gens := [ DiagonalJoin (A, A) : A in Basis (ma) ];
      gens cat:= [ InsertBlock (MA!0, B, 1, d+1) : B in Basis (ma) ];
      R := sub < MA | gens >;
-     SIGMA := Q + Transpose (Q);
+     SIGMA := PHI + Transpose (PHI);
      require Rank (SIGMA) eq d : "need nondegenerate polarization";
-     X := SIGMA^-1 * Q;
+     X := SIGMA^-1 * PHI;
      R`Star := hom < R -> R | Y :-> __QFTSA_star (Y, SIGMA, X) >;
 return R;
 end intrinsic;
