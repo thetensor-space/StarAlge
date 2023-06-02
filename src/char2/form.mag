@@ -33,11 +33,28 @@ __QFTSA_star := function (AB, SIGMA, X)
 return AB_star;
 end function;
 
-intrinsic QuadraticFormToStarAlgebra (PHI::Mtrx) -> AlgMat 
-  { The *-algebra whose unitarian elements are the isometries of the given quadratic form }
+__QFTSA_half_matrix := function (Y)
+     X := 0 * Y;
+     for a in [1..Nrows(Y)] do 
+          assert Y[a][a] eq 0;
+          for b in [a+1..Ncols(Y)] do
+               assert Y[a][b] eq Y[b][a];
+               X[a][b] := Y[a][b];
+          end for;
+     end for;
+return X;
+end function;
+
+intrinsic QuadraticFormToStarAlgebra (PHI::Mtrx) -> AlgMat , AlgMatGrp 
+
+  { The *-algebra whose unitarian elements are the isometries of the given quadratic form, 
+  together with its group of unitarian elements. }
+
      d := Degree (Parent (PHI));
      K := BaseRing (Parent (PHI));
      require Characteristic (K) eq 2 : "function only needed for characteristic 2 fields";
+
+     // build the *-algebra
      ma := MatrixAlgebra (K, d);
      MA := MatrixAlgebra (K, 2*d);
      gens := [ DiagonalJoin (A, A) : A in Basis (ma) ];
@@ -47,7 +64,36 @@ intrinsic QuadraticFormToStarAlgebra (PHI::Mtrx) -> AlgMat
      require Rank (SIGMA) eq d : "need nondegenerate polarization";
      X := SIGMA^-1 * PHI;
      R`Star := hom < R -> R | Y :-> __QFTSA_star (Y, SIGMA, X) >;
-return R;
+
+     // build its group of unitarian elements
+     gens := [ ];
+          // first the radical unitarians ... but write down rather than compute
+          SYM := SymmetricMatrixSpace (K, d);
+          for i in [1..Ngens (SYM)] do
+               U := Identity (MA);
+               InsertBlock (~U, SIGMA^(-1) * Matrix (SYM.i), 1, d+1);
+                    // can remove the sanity check eventually
+               assert (U * (U @ R`Star) eq Identity (R));
+               Append (~gens, U);
+          end for;
+
+          // next the unitarians coming from the orthogonal group
+          VPHI := QuadraticSpace (PHI);
+          ORTH := IsometryGroup (VPHI); 
+          for i in [1..Ngens (ORTH)] do
+               Y := PHI + ORTH.i * PHI * Transpose (ORTH.i);
+               X := __QFTSA_half_matrix (Y);
+               B := (ORTH.i * SIGMA)^(-1) * X;
+               U := DiagonalJoin (Transpose (ORTH.i), Transpose (ORTH.i));
+               InsertBlock (~U, B, 1, d+1);
+                    // can remove the sanity check eventually
+               assert (U * (U @ R`Star) eq Identity (R));
+               Append (~gens, U);
+          end for;
+
+     UNITARIANS := sub < GL (2*d, K) | gens >;
+
+return R, UNITARIANS;
 end intrinsic;
 
 

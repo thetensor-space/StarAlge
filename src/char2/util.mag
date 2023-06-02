@@ -221,4 +221,11 @@ intrinsic VectorStabilizer (V::ModTupFld, v::ModTupFldElt) -> GrpMat
 return S;
 
 end intrinsic;
+
+
+intrinsic SymmetricMatrixSpace (K::Fld, d::RngIntElt) -> ModTupFld 
+  { Construct the space of symmetric matrices of a given degree}
+     E := VectorSpace (K, d * (d+1) div 2);
+return sub < KMatrixSpace (K, d, d) | [ SymmetricMatrix (Eltseq (E.i)) : i in [1..Dimension (E)] ] >;
+end intrinsic;
   
