@@ -46,7 +46,7 @@ __MD_delta := function (D, S, s)
 return (s @ S`Star) @ D`Star - s;
 end function;
 
-MyDerivation := function (D, J, S, Q)
+MyDerivation := function (D, J, Q, S)
 
      // form the matrix for the linear operator <delta> : S --> Q/Q^2
      W, pi := quo < Q | Q * Q >;
