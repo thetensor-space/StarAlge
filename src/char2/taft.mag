@@ -48,19 +48,19 @@ end function;
 
 MyDerivation := function (D, J, Q, S)
 
-     // form the matrix for the linear operator <delta> : S --> Q/Q^2
-     W, pi := quo < Q | Q * Q >;
-     dW := Dimension (W);
+     // form the matrix for the linear operator <delta> : S --> Q/QJ
+     Qbar, pi := quo < Q | Q * J >;
+     dQbar := Dimension (Qbar);
      dS := Dimension (S);   assert dS eq Ngens (S);
-     MS := KMatrixSpace (BaseRing (D), dS, dW);
+     MS := KMatrixSpace (BaseRing (D), dS, dQbar);
      DELTA := MS!Matrix ([ __MD_delta (D, S, S.j) @ pi : j in [1..dS] ]);
 
-     // test if <delta> is an inner derivation
-     igens := [ ];   // basis for the space of inner derivations
+     // build the space of inner derivations
+     igens := [ ];   
      INN_Q := sub < MS | 0 >;
      I := [ ];
-     for l in [1..dW] do 
-          z := W.l @@ pi;
+     for l in [1..dQbar] do 
+          z := Qbar.l @@ pi;
           iz := MS!Matrix ([ (S.j * z + z * S.j) @ pi : j in [1..dS] ]);
           if not iz in INN_Q then   // bit of a hack to ensure a basis
                Append (~igens, iz);
@@ -68,16 +68,17 @@ MyDerivation := function (D, J, Q, S)
                INN_Q := sub < MS | igens >;
           end if;
      end for;
-     INN_Q := KMatrixSpaceWithBasis (igens);    
-     isit := (DELTA in INN_Q);
-     if isit then
-          c := Coordinates (INN_Q, DELTA);
-          assert DELTA eq &+ [ c[l] * igens[l] : l in [1..#igens] ];
-          z := Q!(&+ [ c[l] * (W.(I[l]) @@ pi) : l in [1..#igens] ]);
-     else 
-          z := 0;
-     end if;
+     INN_Q := KMatrixSpaceWithBasis (igens); 
 
-     // TBD: test if <delta> is an inner derivation by a trace 0 element of Q
-return isit, z;
+     // check that <delta> is an inner derivation   
+     assert (DELTA in INN_Q);
+     // build the w in Q corresponding DELTA
+     c := Coordinates (INN_Q, DELTA);
+     assert DELTA eq &+ [ c[l] * igens[l] : l in [1..#igens] ];
+     w := Q!(&+ [ c[l] * (Qbar.(I[l]) @@ pi) : l in [1..#igens] ]);
+
+     // finally see if we're in the generic or exotic case
+     generic := (w + w @ D`Star eq 0);
+
+return w, generic;
 end function;

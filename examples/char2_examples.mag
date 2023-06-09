@@ -4,6 +4,17 @@
  *  *-algebras in characteristic 2. *
 *************************************/
 
+/*
+   Construct a "random" *-subalgebra R 
+   of M_d(GF(p^e)) such that both 
+   J = J(R) and J^2 are nonzero.
+
+   "random" is a bit of an exaggeration 
+   here: to make sure we get something 
+   substantial it just constructs the 
+   adjoint algebra of a pair of 
+   symplectic groups.
+*/
 RandomStarAlgebraWithRadical := function (d, p, e)
   q := p^e;
   G1 := Sp (d, q);
@@ -29,15 +40,29 @@ RandomStarAlgebraWithRadical := function (d, p, e)
 end function;
 
 
-     // this is the example from the paper; bit of a hack
-     __star_image := function (M, t, one)
+/*
+  This is the basic example from the paper 
+  of a *-algebra R in which not all 
+  unitarians of R/J(R) lift to unitarians 
+  of R. It is also a "generic" example of 
+  this type in that the inner derivation 
+  corresponding to the natural radical-semisimple 
+  decomposition of R is a (non-zero) element 
+  of the key space W = (ker tr) / (im tr) 
+
+  The input is just a positive integer e 
+  to build a "basic generic" example over 
+  the field GF(2^e).
+*/
+
+     __BGE_star_image := function (M, t, one)
           N := M;
           InsertBlock (~N, (one + t) * ExtractBlock (M, 1, 3, 2, 2), 3, 1);
           InsertBlock (~N, (one + t) * ExtractBlock (M, 3, 1, 2, 2), 1, 3);
      return N;
      end function;
 
-Example10 := function (e)
+BasicGenericExample := function (e)
   K := GF (2^e);
   ma := MatrixAlgebra (K, 2);
     // make truncated poly algebra as algebra of 2 x 2 matrices
@@ -46,7 +71,7 @@ Example10 := function (e)
     // build 2 x 2 matrix algebra over this ring
   MA := MatrixAlgebra (K, 4);
   z := MA!0;
-  A := sub < MA | 
+  R := sub < MA | 
              [
              InsertBlock (z, t, 1, 1),
              InsertBlock (z, one, 1, 1),
@@ -58,23 +83,33 @@ Example10 := function (e)
              InsertBlock (z, one, 3, 3)
              ]
            >;
-  star := hom < A -> A | M :-> __star_image (M, t, one) >;
-  A`Star := star;
-return A;
+  star := hom < R -> R | M :-> __BGE_star_image (M, t, one) >;
+  R`Star := star;
+return R;
 end function;
 
-// brute force norm group computation for Example 10 ... 
 /*
-e := 1;
-A := Example10 (e);
-U := RadicalUnitarians (A);
-G := sub < GL(4,2^e) | [ a : a in A | (a @ A`Star) * a eq Identity (A) ] >;
-assert U subset G;
-J := JacobsonRadical (A);
-V := sub < GL(4,2^e) | [ Identity (A) + z : z in J ] >;
-W := sub < V | [ v : v in V | v @ A`Star * v eq Identity(A) ] >;
-B := StarQuotient (A, J);
-H := sub < GL (Degree (B), BaseRing (B)) | [ b : b in B | (b @ B`Star) * b eq Identity (B) ] >;
+  Here is the quadratic form example from the paper.
+  It can use any quadratic form, but this basic 
+  analogue of the generic example above uses the 
+  standard quadratic form for the data provided
 */
 
+BasicExoticExample := function (d, e : Minus := false)
+  PHI := StandardQuadraticForm (d, GF(2^e) : Minus := Minus);
+return QuadraticFormToStarAlgebra (PHI);
+end function;
+
+// at the moment, need to load these "My__" functions
+test_random := function (d, e)
+  R := RandomStarAlgebraWithRadical (d, 2, e);
+  D := R;
+  J, S := MyWedderburnDecomposition (D);
+  "J has dimension", Dimension (J);
+  "J^2 has dimension", Dimension (J*J);
+  "J^3 has dimension", Dimension (J*J*J);
+  Q := J;
+  w, gen := MyDerivation (D, J, Q, S);
+return gen;
+end function;
 
