@@ -229,3 +229,12 @@ intrinsic SymmetricMatrixSpace (K::Fld, d::RngIntElt) -> ModTupFld
 return sub < KMatrixSpace (K, d, d) | [ SymmetricMatrix (Eltseq (E.i)) : i in [1..Dimension (E)] ] >;
 end intrinsic;
   
+
+/* This should be somewhere else */
+intrinsic IsStarSubalgebra (R::AlgMat, S::AlgMat) -> BoolElt
+  { Decide whether the subalgebra S of *-algebra R is *-invariant }
+     require IsStarAlgebra (R) : "R is not a *-algebra";
+     require forall { s : s in Generators (S) | s in R } : 
+         "S is not a subalgebra of R";
+return forall { s : s in Generators (S) | s @ R`Star in S };
+end intrinsic;

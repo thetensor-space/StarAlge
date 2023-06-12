@@ -568,9 +568,10 @@ intrinsic AdjointAlgebra (S::SeqEnum :
      if #S eq 1 then
          return AdjointsOfAForm (S[1], Autos[1]);
      end if;
-       
+
      /* prepare the system of forms and select appropriate method */
      nForms, nAutos, method, mtcf := PrepareSystem (S, Autos); 
+     
 
      if (method eq "slope") then
   

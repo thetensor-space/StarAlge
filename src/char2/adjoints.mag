@@ -1,0 +1,49 @@
+/*
+   Added by PAB on 6/29/2023.
+
+   New adjoint function for characteristic 2. 
+
+   Cuts out all of the bells and whistles 
+   included in the odd characteristic code.
+
+   Assumes for the time being that the input
+   system of forms is nondegenerate. We can 
+   upgrade that later (we can copy and paste the 
+   code we already have for odd characteristic).
+
+   Note: this is adapted from code written by JM 
+   but I could note get the latter to work; see 
+
+   __default_adj_new 
+
+   in the file "adjoints.m". This is my hack fix.
+*/
+
+__Star_image := function (alg, MS, S, a)
+     c := Coordinates (MS, MS!a);
+     aa := &+[ c[i] * S[i] : i in [1..#c] ];
+     return alg!aa;
+end function;
+
+intrinsic AdjointAlgebraChar2 (S::SeqEnum) -> AlgMat
+  { Algebra of adjoints of form list S for fields of characteristic 2 }
+
+    MA := Parent (S[1]);
+    d := Degree (MA);
+
+    t := Tensor (S, 2, 1);
+    M := MidNucleus (t);
+    m := Dimension (M);
+
+    M_bas := Basis (M);
+    ADJ_bas := [ ExtractBlock (M_bas[i], 1, 1, d, d) : i in [1..m] ];
+    ADJ := sub < MA | ADJ_bas >;
+
+    MS := KMatrixSpace (BaseRing (MA), d, d);
+    ADJ_MS := KMatrixSpaceWithBasis ([ MS!(ADJ_bas[i]) : i in [1..m] ]);
+    ADJ_im := [ Transpose (ExtractBlock (M_bas[i], d+1, d+1, d, d)) : i in [1..m] ];
+
+    ADJ`Star := hom < ADJ -> ADJ | x :-> __Star_image (ADJ, ADJ_MS, ADJ_im, x) >;
+                     
+return ADJ;
+end intrinsic;

@@ -54,6 +54,7 @@ MyDerivation := function (D, J, Q, S)
      dS := Dimension (S);   assert dS eq Ngens (S);
      MS := KMatrixSpace (BaseRing (D), dS, dQbar);
      DELTA := MS!Matrix ([ __MD_delta (D, S, S.j) @ pi : j in [1..dS] ]);
+"DELTA =", DELTA;
 
      // build the space of inner derivations
      igens := [ ];   

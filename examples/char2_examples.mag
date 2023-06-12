@@ -14,25 +14,37 @@
    substantial it just constructs the 
    adjoint algebra of a pair of 
    symplectic groups.
+
+   The "INTERESTING" flag, if true, also
+   requires that the constructed 
+   Wedderburn complement to the radical 
+   if NOT *-invariant.
 */
-RandomStarAlgebraWithRadical := function (d, p, e)
+RandomStarAlgebraWithRadical := function (d, p, e : INTERESTING := false)
   q := p^e;
   G1 := Sp (d, q);
   F1 := ClassicalForms (G1)`bilinearForm;
   found := false;
   count := 0;
   LIMIT := 1000;
-  while count lt LIMIT and not found do
+  while (count lt LIMIT) and (not found) do
+    count +:= 1;
     G2 := RandomConjugate (G1);
     F2 := ClassicalForms (G2)`bilinearForm;
-    A := AdjointAlgebra ([F1, F2]);
-    J := JacobsonRadical (A);
-    if (Dimension (J) gt 0) and (Dimension (J*J) gt 0) then    
-         found := true;
+    R := AdjointAlgebraChar2 ([F1, F2]);
+    J, S := WedderburnDecomposition (R);
+    if (Dimension (J) gt 0) and (Dimension (J*J) gt 0) then  
+         if INTERESTING then 
+              if not IsStarSubalgebra (R, S) then 
+                   found := true;
+              end if;
+         else   
+              found := true;
+         end if;
     end if;
   end while;
   if found then 
-    return A;
+    return R;
   else
     "failed to find an example after", LIMIT, "tries";
     return false;
@@ -101,13 +113,14 @@ return QuadraticFormToStarAlgebra (PHI);
 end function;
 
 // at the moment, need to load these "My__" functions
-test_random := function (d, e)
-  R := RandomStarAlgebraWithRadical (d, 2, e);
+test_random := function (d, e : INTERESTING := false)
+  R := RandomStarAlgebraWithRadical (d, 2, e : INTERESTING := INTERESTING);
   D := R;
   J, S := MyWedderburnDecomposition (D);
   "J has dimension", Dimension (J);
   "J^2 has dimension", Dimension (J*J);
   "J^3 has dimension", Dimension (J*J*J);
+  "S is *-invariant?", IsStarSubalgebra (R, S);
   Q := J;
   w, gen := MyDerivation (D, J, Q, S);
 return gen;
