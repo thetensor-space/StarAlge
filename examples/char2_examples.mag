@@ -67,6 +67,10 @@ end function;
   the field GF(2^e).
 */
 
+/*
+
+*** PAB: this was my original way to build it 
+
      __BGE_star_image := function (M, t, one)
           N := M;
           InsertBlock (~N, (one + t) * ExtractBlock (M, 1, 3, 2, 2), 3, 1);
@@ -97,6 +101,66 @@ BasicGenericExample := function (e)
            >;
   star := hom < R -> R | M :-> __BGE_star_image (M, t, one) >;
   R`Star := star;
+return R;
+end function;
+*/
+
+// PAB: this is a new way that extends more readily to higher nilpotence
+     __BGE_star_image := function (M)
+          N := 0 * M;
+          A := ExtractBlock (M, 1, 1, 2, 2);
+          AJ := 0 * A; AJ[1][2] := A[2][1]; AJ[2][1] := A[1][2];
+          B := ExtractBlock (M, 1, 3, 2, 2);
+          InsertBlock (~N, Transpose (A), 1, 1);
+          InsertBlock (~N, Transpose (A), 3, 3);
+          InsertBlock (~N, AJ + Transpose (B), 1, 3);
+     return N;
+     end function;
+
+
+BasicGenericExample := function (e)
+  K := GF (2^e);
+  ma := MatrixAlgebra (K, 2);
+  MA := MatrixAlgebra (K, 4);
+  Z := MA!0;
+  R_gens := [ DiagonalJoin (ma.i, ma.i) : i in [1..Ngens (ma)] ];
+  R_gens cat:= [ InsertBlock (Z, ma.i, 1, 3) : i in [1..Ngens (ma)] ];
+  R := sub < MA | R_gens >;
+  R`Star := hom < R -> R | M :-> __BGE_star_image (M) >;
+return R;
+end function;
+
+
+// new example by MK to illustrate more complex generic behavior
+
+     __EGE_star_image := function (M)
+          N := 0 * M;
+          A := ExtractBlock (M, 1, 1, 2, 2);
+          AJ := 0 * A; AJ[1][2] := A[2][1]; AJ[2][1] := A[1][2];
+          B := ExtractBlock (M, 1, 4, 2, 2);
+          InsertBlock (~N, Transpose (A), 1, 1);
+          InsertBlock (~N, Transpose (A), 4, 4);
+          InsertBlock (~N, AJ + Transpose (B), 1, 4);
+          N[3][3] := M[3][3];
+          v := ExtractBlock (M, 1, 3, 2, 1);
+          w := ExtractBlock (M, 3, 4, 1, 2);
+          InsertBlock (~N, Transpose (w), 1, 3);
+          InsertBlock (~N, Transpose (v), 3, 4);
+     return N;
+     end function;
+
+ExtendedGenericExample := function (e)
+  K := GF (2^e);
+  ma := MatrixAlgebra (K, 2);
+  MA := MatrixAlgebra (K, 5);
+  Z := MA!0;
+  R_gens := [ DiagonalJoin (DiagonalJoin (ma.i, Matrix ([[K!0]])), ma.i) : i in [1..Ngens (ma)] ];
+  K_gen := Z; K_gen[3][3] := K.1; Append (~R_gens, K_gen);
+  V_gen := Z; V_gen[1][3] := 1; Append (~R_gens, V_gen);
+  W_gen := Z; W_gen[3][4] := 1; Append (~R_gens, W_gen);
+  R_gens cat:= [ InsertBlock (Z, ma.i, 1, 3) : i in [1..Ngens (ma)] ];
+  R := sub < MA | R_gens >;
+  R`Star := hom < R -> R | M :-> __EGE_star_image (M) >;
 return R;
 end function;
 
