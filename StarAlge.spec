@@ -21,5 +21,6 @@
 		   char2/form.mag
 		   char2/radical.mag
 		   char2/adjoints.mag
+		   char2/taft.mag
   }
 }

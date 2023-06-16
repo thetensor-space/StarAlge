@@ -16,14 +16,14 @@
 import "util.mag" : StarTrace;
 
 
-// slight adaptation of familiar function to induce an involution on the complement
-__MWD_dot := function (D, S, MatD, s) 
-     e := Dimension (S);
-     t := Generic (MatD)!(D!s @ D`Star);
-     assert t in MatD;
-     c := Coordinates (MatD, t);
-return &+ [ c[l] * S.l : l in [1..Ngens(S)] ];
-end function;
+       // adaptation of function to induce an involution on the complement
+       __MWD_dot := function (D, S, MatD, s) 
+            e := Dimension (S);
+            t := Generic (MatD)!(D!s @ D`Star);
+            assert t in MatD;
+            c := Coordinates (MatD, t);
+       return &+ [ c[l] * S.l : l in [1..Ngens(S)] ];
+       end function;
 
 MyWedderburnDecomposition := function (D)
      J, S := WedderburnDecomposition (D);
@@ -39,14 +39,14 @@ MyWedderburnDecomposition := function (D)
 return J, S;
 end function;
 
-// Given a MyWedderburnDecomposition D = J + S and suitable ideal Q of J,
-// construct a matrix representing the derivation S --> Q / Q^2, 
-// where s |--> (s^.)^* - s (mod Q^2)   ... we have checked this is in Q
-__MD_delta := function (D, S, s)
-return (s @ S`Star) @ D`Star - s;
-end function;
+// Given data (D,J,Q,S) decide if we are in the "linear" case
+       __MD_delta := function (D, S, s)
+       return (s @ S`Star) @ D`Star - s;
+       end function;
 
-MyDerivation := function (D, J, Q, S)
+// temporary intrinsic
+intrinsic MyDerivation (D::AlgMat, J::AlgMat, Q::AlgMat, S::AlgMat) -> AlgMatElt, BoolElt 
+  { Temporary intrinsic for distinguishing linear and non-linear cases. }
 
      // form the matrix for the linear operator <delta> : S --> Q/QJ
      Qbar, pi := quo < Q | Q * J >;
@@ -54,7 +54,6 @@ MyDerivation := function (D, J, Q, S)
      dS := Dimension (S);   assert dS eq Ngens (S);
      MS := KMatrixSpace (BaseRing (D), dS, dQbar);
      DELTA := MS!Matrix ([ __MD_delta (D, S, S.j) @ pi : j in [1..dS] ]);
-"DELTA =", DELTA;
 
      // build the space of inner derivations
      igens := [ ];   
@@ -69,17 +68,16 @@ MyDerivation := function (D, J, Q, S)
                INN_Q := sub < MS | igens >;
           end if;
      end for;
-     INN_Q := KMatrixSpaceWithBasis (igens); 
-
-     // check that <delta> is an inner derivation   
-     assert (DELTA in INN_Q);
+     INN_Q := KMatrixSpaceWithBasis (igens);    
+     assert (DELTA in INN_Q);  // check that <delta> is an inner derivation
+     
      // build the w in Q corresponding DELTA
      c := Coordinates (INN_Q, DELTA);
      assert DELTA eq &+ [ c[l] * igens[l] : l in [1..#igens] ];
      w := Q!(&+ [ c[l] * (Qbar.(I[l]) @@ pi) : l in [1..#igens] ]);
 
      // finally see if we're in the generic or exotic case
-     generic := (w + w @ D`Star eq 0);
+     generic := (StarTrace (D, w) eq 0);
 
 return w, generic;
-end function;
+end intrinsic;
