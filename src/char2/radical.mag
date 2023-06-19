@@ -3,89 +3,86 @@
  * Modified by PAB on 4/29/2022.
 */
 
-import "util.mag" : StarDelta;
+import "util.mag" : StarDelta, StarTrace, StarNorm;
 
 
 /*
- * Given a *-algebra, A, find the subgroup of the unitarian 
- * group A^# that lies in 1 + J(A). This method replaces the
+ * Given a *-algebra, R, find the subgroup of the unitarian 
+ * group A^# that lies in 1 + J(R). This method replaces the
  * power series trick used in the odd characteristic case.
  *
  * Note: in a future code overhaul there should be a single 
  * intrinsic that applies to *-algebras in all characteristics.
 */
-intrinsic RadicalUnitarians (A::AlgMat : 
-                               VERIFY := false,
-                               RANDOM := true
+intrinsic RadicalUnitarians (R::AlgMat : 
+                               RANDOM := true   // how we compute the derived subgroup
                             ) -> GrpMat
 
-  { Return the subgroup of A^# lying within 1 + J(A). }
+  { Return the subgroup of R^# lying within 1 + J(R). }
 
-  d := Degree (A);
-  F := BaseRing (A); 
+  d := Degree (R);
+  K := BaseRing (R); 
   // PAB : might as well have this function incorporate odd char as well
-  require Characteristic (F) eq 2 : "method only applies in characteristic 2";
-  f := Degree (F);
-  rho := PrimitiveElement (F);
-  one := Identity (A);
+  require Characteristic (K) eq 2 : "method only applies in characteristic 2";
+  k := Degree (K);
+  rho := PrimitiveElement (K);
+  one := Identity (R);
 
   // initialize
-  J := JacobsonRadical (A);
-  gens := &cat [ [ one + rho^j * J.i : j in [0..f-1] ] : i in [1..Ngens (J)] ];
-  G := sub < GL (d, F) | gens >;
-  K := J;
+  J := JacobsonRadical (R);
+  gens := &cat [ [ one + rho^j * J.i : j in [0..k-1] ] : i in [1..Ngens (J)] ];
+  U := sub < GL (d, K) | gens >;
+       vprint Isometry, 1 : "[RadUnit] initial order of U =", LMGOrder (U);
+  Q := J;
   
   // refine G through the layers of the radical
   depth := 0;
-  while Dimension (K) gt 0 do
-  
-tt := Cputime ();
-    if VERIFY then  // with verbose printing will show the evolution of G through layers
-         vprint Isometry, 1 : "[RadUnit] layer of radical series =", depth;
-         vprint Isometry, 1 : "[RadUnit] order of G =", LMGOrder (G);
-    end if;
+  while Dimension (Q) gt 0 do
+
     depth +:= 1;
-"time to compute order =", Cputime (tt);
-   
-tt := Cputime (); 
-    U := J * K;
+    QJ := Q * J;  
+         vprint Isometry, 1 : "==================";
+         vprint Isometry, 1 : "[RadUnit] layer of radical series =", depth;
+         vprint Isometry, 1 : "[RadUnit] dim(Q) =", Dimension (Q), "   dim(Q*J) =", Dimension (QJ);
  
     // build matrix representing GF(2)-linear map <mu> : G / G^2 * [G,G] ---> K / U
-    K2, f := WriteOverSmallerField (K, GF(2));
-    U2 := sub < K2 | [ U.i @ f : i in [1..Ngens (U)] ] >; 
-    W, pi := quo < K2 | U2 >;
+    Q2, f := WriteOverSmallerField (Q, GF(2));
+    QJ2 := sub < Q2 | [ QJ.i @ f : i in [1..Ngens (QJ)] ] >; 
+    QmodQJ, pi := quo < Q2 | QJ2 >;
 
-    M := Matrix ([ (StarDelta (A, A!(G.i) - one) @ f) @ pi : i in [1..Ngens (G)] ]);
+// test whether we'll be in the "easy generic" lifting case
+tQ := sub < Q | [ StarTrace (R, Q.i) : i in [1..Ngens (Q)] ] >;
+nU := sub < Q | [ StarNorm (R, R!(U.i)) - one : i in [1..Ngens (U)] ] >;
+assert tQ subset nU;
+generic := (tQ eq nU);
+vprint Isometry, 1 : "[RadUnit] this is an easy generic case?", generic;
+
+    M := Matrix ([ (StarDelta (R, R!(U.i) - one) @ f) @ pi : i in [1..Ngens (U)] ]);
     null := Nullspace (M);
-"time to construct M and null space =", Cputime (tt); 
- 
-tt := Cputime ();    
-    ker := sub < Generic(G) | [
-            &* [ G.i^Integers ()!(n[i]) : i in [1..Ngens (G)] ] : n in Basis (null)
+    
+    ker := sub < GL (d, K) | [
+            &* [ U.i^Integers ()!(n[i]) : i in [1..Ngens (U)] ] : n in Basis (null)
                      ]
                 >;
-"time to construct pullback into G =", Cputime (tt);
 
-tt := Cputime ();
+    // compute the derived subgroup of G: randomized or deterministic
     if RANDOM then
-         DG := DerivedGroupMonteCarlo (G);
+         DU := DerivedGroupMonteCarlo (U);
     else 
-         DG := LMGDerivedGroup (G);
-    end if;
-"time to compute derived subgroup of G =", Cputime (tt);   
+         DU := LMGDerivedGroup (U);
+    end if;  
 
-tt := Cputime (); 
-    G := sub < Generic(G) | ker , DG , [ G.i^2 : i in [1..Ngens(G)] ] >;
-    K := U;
-"time to update G and K =", Cputime (tt);
+    U := sub < GL (d, K) | ker , DU , [ U.i^2 : i in [1..Ngens (U)] ] >;
+         vprint Isometry, 1 : "[RadUnit] order of U =", #U;
+
+    Q := QJ;
     
   end while;
-  
-tt := Cputime ();  
-assert forall { i : i in [1..Ngens (G)] | G.i @ A`Star * G.i eq Identity (G) };
-"time to verify output =", Cputime (tt);
+    
+// make sure the group does indeed consist of unitarian elements of R    
+assert forall { i : i in [1..Ngens (U)] | U.i @ R`Star * U.i eq Identity (U) };
 
-return G;
+return U;
 
 end intrinsic;
 
