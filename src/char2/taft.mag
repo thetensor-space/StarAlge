@@ -56,9 +56,8 @@ end function;
        return (s @ S`Star) @ D`Star - s;
        end function;
 
-// temporary intrinsic
-intrinsic MyDerivation (D::AlgMat, J::AlgMat, Q::AlgMat, S::AlgMat) -> AlgMatElt, BoolElt 
-  { Temporary intrinsic for distinguishing linear and non-linear cases. }
+
+GetDerivation := function (D, J, Q, S) 
 
      // form the matrix for the linear operator <delta> : S --> Q/QJ
      Qbar, pi := quo < Q | Q * J >;
@@ -89,10 +88,11 @@ intrinsic MyDerivation (D::AlgMat, J::AlgMat, Q::AlgMat, S::AlgMat) -> AlgMatElt
      w := Q!(&+ [ c[l] * (Qbar.(I[l]) @@ pi) : l in [1..#igens] ]);
 
      // finally see if we're in the generic or exotic case
-     generic := (StarTrace (D, w) eq 0);
+     LINEAR := (StarTrace (D, w) eq 0);
 
-return w, generic;
-end intrinsic;
+return w, LINEAR;
+end function;
+
 
 /*
 Here is the input data to be modified:
@@ -119,12 +119,10 @@ procedure LinearLift (~D, ~J, ~Q, ~S, ~U : RANDOM := true)
      K := BaseRing (D); 
      k := Degree (K);
      rho := PrimitiveElement (K);
-     one := Identity (D);
+     one := Identity (D);         
 
-     QJ := Q * J;  
-
-          // lifted from MyDerivation above ... probably should consolidate at some point
-
+/*
+SUBCONTRACTED
           // form the matrix for the linear operator <delta> : S --> Q/QJ
           Qbar, pi := quo < Q | Q * J >;
           dQbar := Dimension (Qbar);
@@ -152,11 +150,23 @@ procedure LinearLift (~D, ~J, ~Q, ~S, ~U : RANDOM := true)
           c := Coordinates (INN_Q, DELTA);
           assert DELTA eq &+ [ c[l] * igens[l] : l in [1..#igens] ];
           w := Q!(&+ [ c[l] * (Qbar.(I[l]) @@ pi) : l in [1..#igens] ]);
+*/
 
-          // catch the non-linear case --- right now we'll just get an assertion failure
-          assert (StarTrace (D, w) eq 0);
+w, LINEAR := GetDerivation (D, J, Q, S);
+vprint Isometry, 1 : "[LinearLift] inner derivation w =", w; 
+vprint Isometry, 1 : "[LinearLift] tr(w) =", w + w @ D`Star; 
+
+if not LINEAR then  
+    // eventually this procedure will assert this condition
+    // for testing purposes, though, let's print some stuff
+vprint Isometry, 1 : "[LinearLift] not the linear case";
+Q := sub < Generic (Q) | Q!0 >;
+
+else
+
  
     // build matrix representing GF(2)-linear map <mu> : G / G^2 * [G,G] ---> K / U
+    QJ := Q * J;
     Q2, f := WriteOverSmallerField (Q, GF(2));
     QJ2 := sub < Q2 | [ QJ.i @ f : i in [1..Ngens (QJ)] ] >; 
     QmodQJ, pi := quo < Q2 | QJ2 >;
@@ -165,9 +175,9 @@ procedure LinearLift (~D, ~J, ~Q, ~S, ~U : RANDOM := true)
     // so, we just need to see if w is in the image of this map
     M := Matrix ([ (StarDelta (D, D!(U.i) - one) @ f) @ pi : i in [1..Ngens (U)] ]);
 //    IMAGE := VectorSpaceWithBasis ([ Vector (M[i]) : i in [1..Nrows (M)] ]);
-    twist := (w @ f) @ pi in RowSpace (M);
+    TWIST := (w @ f) @ pi in RowSpace (M);
 
-    if twist then     // use u to twist S to a *-invariant complement mod QJ
+    if TWIST then     // use u to twist S to a *-invariant complement mod QJ
 
 vprint Isometry, 1 : "[LinearLift] twisting the complement";  
 
@@ -185,9 +195,13 @@ u := &* [ U.i^Integers ()!(c[i]) : i in [1..Ngens (U)] ];
 
 // update S by twisting
 assert exists (u){ x : x in U | x @ D`Star * x - one - w in QJ };
+vprint Isometry, 1 : "[LinearLift] twisting element is u =", u;
 T := sub < Generic (S) | [ u^-1 * S.i * u : i in [1..Ngens (S)] ] >;
 T`Star := hom < T -> T | t :-> u^-1 * ( (u * t * u^-1) @ S`Star ) * u >;
 S := T; 
+
+// verify the twist behaves as advertized
+assert forall { s : s in Generators (S) | s + (s @ S`Star) @ D`Star in QJ };
 
               // update U
               null := Nullspace (M);
@@ -206,9 +220,11 @@ S := T;
 
     else              // swap D for an algebra fixing w in linear action 
 
-vprint Isometry, 1 : "[LinearLift] not implemented yet";
+vprint Isometry, 1 : "[LinearLift] reduce semisimple part (not implemented yet)";
 Q := sub < Generic (Q) | Q!0 >;
 
     end if;
+
+end if;
 
 end procedure;
