@@ -190,3 +190,43 @@ test_random := function (d, e : INTERESTING := false)
 return gen;
 end function;
 
+test_basic := function (e)
+  D := BasicGenericExample (e);
+  J, S := MyWedderburnDecomposition (D);
+  Q := J;
+  d := Degree (D);
+  K := BaseRing (D); 
+  k := Degree (K);
+  rho := PrimitiveElement (K);
+  one := Identity (D);
+  gens := &cat [ [ one + rho^j * J.i : j in [0..k-1] ] : i in [1..Ngens (J)] ];
+  U := sub < GL (d, K) | gens >;
+  layer := 0;
+  while Dimension (Q) gt 0 do
+       LinearLift (~D, ~J, ~Q, ~S, ~U);
+  end while;
+return "done";
+end function;
+
+
+test_extended := function (e)
+  D := ExtendedGenericExample (e);
+  J, S := MyWedderburnDecomposition (D);
+"S is *-invariant initially :", forall { s : s in Generators (S) | s @ D`Star in S };
+  Q := J;
+  d := Degree (D);
+  K := BaseRing (D); 
+  k := Degree (K);
+  rho := PrimitiveElement (K);
+  one := Identity (D);
+  gens := &cat [ [ one + rho^j * J.i : j in [0..k-1] ] : i in [1..Ngens (J)] ];
+  U := sub < GL (d, K) | gens >;
+  level := 0;
+  while Dimension (Q) gt 0 do
+       level +:= 1;
+       LinearLift (~D, ~J, ~Q, ~S, ~U);
+"S is *-invariant at level", level, ":", forall { s : s in Generators (S) | s @ D`Star in S };
+  end while;
+return D, J, Q, S, U;
+end function;
+
