@@ -4,6 +4,7 @@
  *  described in Section 5 of the paper.*
 ****************************************/
 
+
 /*
   Case Study #1: this is the basic example 
   from the original paper. It is a *-algebra 
@@ -38,6 +39,7 @@ CaseStudy1 := function (e)
   R`Star := hom < R -> R | M :-> __CS1_star_image (M) >;
 return R;
 end function;
+
 
 
 /*
@@ -81,6 +83,7 @@ return R;
 end function;
 
 
+
 /*
   Case Study #3: this is a *-algebra whose semisimple unitarians 
   correspond to isometries of a quadratic form. Again, there 
@@ -96,6 +99,8 @@ return QuadraticFormToStarAlgebra (PHI);
 end function;
 
 
+
+// a function for extracting information from our case studies
 ProcessExample := function (R)
   D := R;
   J, S := MyWedderburnDecomposition (D);
@@ -108,11 +113,13 @@ del := hom < S -> Q | s :-> s + (s @ S`Star) @ D`Star >;
   one := Identity (D);
   gens := &cat [ [ one + rho^j * J.i : j in [0..k-1] ] : i in [1..Ngens (J)] ];
   U := sub < GL (d, K) | gens >;
-//"im mu =",
-//{ (D!(u) @ D`Star) * (D!(u)) + one : u in U };
-//"  ";
-//"im tr =", 
-//{ z @ D`Star + z : z in Q };
+/*
+im_mu := 
+{ (D!(u) @ D`Star) * (D!(u)) + one : u in U };
+im_tr :=
+{ z @ D`Star + z : z in Q };
+assert im_tr subset im_mu;
+*/
   layer := 0;
   while Dimension (Q) gt 0 do
        LinearLift (~D, ~J, ~Q, ~S, ~U);

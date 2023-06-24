@@ -238,3 +238,48 @@ intrinsic IsStarSubalgebra (R::AlgMat, S::AlgMat) -> BoolElt
          "S is not a subalgebra of R";
 return forall { s : s in Generators (S) | s @ R`Star in S };
 end intrinsic;
+
+// PAB: I'm not sure a function exists in Magma to carry out this basic task
+intrinsic LinearCombination (S::SeqEnum, x::ModTupFldElt) -> SeqEnum , SeqEnum
+  { Given a list S of vectors in a vector space V, and x in the span of S,  
+    write x as a linear combination of S and also the positions in S of 
+    vectors that form a basis for the span of S. }
+
+     // make sure the input is valid
+     V := Generic (Parent (x)); 
+     require forall { s : s in S | s in V } : "x and the elements of S do not live in the same vector space"; 
+
+     // make sure x is in span(S)
+     require x in sub < V | S > : "x is not in the span of S";
+
+     // catch the trivial case
+     if forall { s : s in S | s eq 0 } then
+          assert x eq 0;
+          return [ BaseRing (V)!1 ] cat [ BaseRing (V)!0 : i in [2..#S] ], [ ];
+     end if;
+
+     // find the positions of elements of S that form a basis for span(S)
+     positions := [ ];
+     T := [ ];
+     while sub < V | T > ne sub < V | S > do
+          assert exists (i){ j : j in [1..#S] | not S[j] in sub < V | T > };
+          Append (~positions, i);
+          Append (~T, S[i]);
+     end while; 
+
+     // compute the coordinates of x relative to T
+     U := VectorSpaceWithBasis (T);
+     assert x in U;
+     cU := Coordinates (U, x);
+
+     // pad out
+     c := [ BaseRing (V)!0 : i in [1..#S] ];
+     for i in [1..#T] do 
+          c[positions[i]] := cU[i];
+     end for;
+
+     // final check 
+     assert x eq &+[ c[i] * S[i] : i in [1..#S] ];
+
+return c, positions;
+end intrinsic;

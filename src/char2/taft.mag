@@ -51,11 +51,6 @@ MyWedderburnDecomposition := function (D)
 return J, S;
 end function;
 
-// Given data (D,J,Q,S) decide if we are in the "linear" case
-       __MD_delta := function (D, S, s)
-       return (s @ S`Star) @ D`Star - s;
-       end function;
-
 
 GetDerivation := function (D, J, Q, S) 
 
@@ -64,7 +59,8 @@ GetDerivation := function (D, J, Q, S)
      dQbar := Dimension (Qbar);
      dS := Dimension (S);   assert dS eq Ngens (S);
      MS := KMatrixSpace (BaseRing (D), dS, dQbar);
-     DELTA := MS!Matrix ([ __MD_delta (D, S, S.j) @ pi : j in [1..dS] ]);
+     assert forall { j : j in [1..dS] | (S.j @ S`Star) @ D`Star + S.j in Q };
+     DELTA := MS!Matrix ([ ((S.j @ S`Star) @ D`Star + S.j) @ pi : j in [1..dS] ]);
 
      // build the space of inner derivations
      igens := [ ];   
@@ -98,16 +94,19 @@ end function;
 Here is the input data to be modified:
 
       D = subalgebra of given R with D^# = R^#
+
       J = J(D), the Jacobson radical of D
+
       Q = *-ideal of D contained in J such that S/Q is *-invariant in D/Q
           ( (s^.)^* - s lives in Q )
+
       S = semisimple ring complement to J in D
           (ensure that the generators of S are always a basis)
           (S gets an involution from the decomp D = J + S)
+
       U = unipotent group containing 1+Q such that 
           U / (1+Q) is isomorphic (1 + J/Q)^#
           (this is the same group U from RadicalUnitarians intrinsic)
-          NOTE: need to make sure the input U has "GF(2)-gens" see RadUnit
 
 The following procedure updates these data, but doing so in a way 
 that the pair   < dim(D) , dim(Q) >   gets smaller, lexicographically
@@ -121,87 +120,51 @@ procedure LinearLift (~D, ~J, ~Q, ~S, ~U : RANDOM := true)
      rho := PrimitiveElement (K);
      one := Identity (D);         
 
-/*
-SUBCONTRACTED
-          // form the matrix for the linear operator <delta> : S --> Q/QJ
-          Qbar, pi := quo < Q | Q * J >;
-          dQbar := Dimension (Qbar);
-          dS := Dimension (S);   assert dS eq Ngens (S);
-          MS := KMatrixSpace (BaseRing (D), dS, dQbar);
-          DELTA := MS!Matrix ([ __MD_delta (D, S, S.j) @ pi : j in [1..dS] ]);
+     // get the inner derivation and check we're in the Linear Case
+     w, LINEAR := GetDerivation (D, J, Q, S);
+     vprint Isometry, 2 : "[LinearLift] inner derivation w =", w; 
+     vprint Isometry, 2 : "[LinearLift] tr(w) =", w + w @ D`Star; 
 
-              // build the space of inner derivations
-              igens := [ ];   
-              INN_Q := sub < MS | 0 >;
-              I := [ ];
-              for l in [1..dQbar] do 
-                   z := Qbar.l @@ pi;
-                   iz := MS!Matrix ([ (S.j * z + z * S.j) @ pi : j in [1..dS] ]);
-                   if not iz in INN_Q then   // bit of a hack to ensure a basis
-                        Append (~igens, iz);
-                        Append (~I, l);
-                        INN_Q := sub < MS | igens >;
-                   end if;
-              end for;
-              INN_Q := KMatrixSpaceWithBasis (igens);    
-              assert (DELTA in INN_Q);  // check that <delta> is an inner derivation
-     
-          // build the w in Q corresponding DELTA
-          c := Coordinates (INN_Q, DELTA);
-          assert DELTA eq &+ [ c[l] * igens[l] : l in [1..#igens] ];
-          w := Q!(&+ [ c[l] * (Qbar.(I[l]) @@ pi) : l in [1..#igens] ]);
-*/
+    if not LINEAR then  
+    // eventually this procedure will pass w as input and it will
+    // have been checked beforehand that we are in the linear case
+         vprint Isometry, 1 : "[LinearLift] not the linear case";
+         Q := sub < Generic (Q) | Q!0 >;
+    else
 
-w, LINEAR := GetDerivation (D, J, Q, S);
-vprint Isometry, 1 : "[LinearLift] inner derivation w =", w; 
-vprint Isometry, 1 : "[LinearLift] tr(w) =", w + w @ D`Star; 
-
-if not LINEAR then  
-    // eventually this procedure will assert this condition
-    // for testing purposes, though, let's print some stuff
-vprint Isometry, 1 : "[LinearLift] not the linear case";
-Q := sub < Generic (Q) | Q!0 >;
-
-else
-
- 
-    // build matrix representing GF(2)-linear map <mu> : G / G^2 * [G,G] ---> K / U
+    // this section of code is lifted from RadicalUnitarians
+    // build matrix representing map <mu> : G / G^2 * [G,G] ---> K / U
     QJ := Q * J;
     Q2, f := WriteOverSmallerField (Q, GF(2));
     QJ2 := sub < Q2 | [ QJ.i @ f : i in [1..Ngens (QJ)] ] >; 
     QmodQJ, pi := quo < Q2 | QJ2 >;
 
-    // NOTE: <mu>(u) = <Delta>(u-1) is what Martin is calling \bar{n} 
-    // so, we just need to see if w is in the image of this map
-    M := Matrix ([ (StarDelta (D, D!(U.i) - one) @ f) @ pi : i in [1..Ngens (U)] ]);
-//    IMAGE := VectorSpaceWithBasis ([ Vector (M[i]) : i in [1..Nrows (M)] ]);
-    TWIST := (w @ f) @ pi in RowSpace (M);
+    // check whether w is in the image of <mu> : U --> QmodQJ
+    gen_images := [ (StarDelta (D, D!(U.i) - one) @ f) @ pi : i in [1..Ngens (U)] ];
+    M := Matrix (gen_images);
+    TWIST := (w @ f) @ pi in sub < QmodQJ | gen_images >;
 
     if TWIST then     // use u to twist S to a *-invariant complement mod QJ
 
-vprint Isometry, 1 : "[LinearLift] twisting the complement";  
+         vprint Isometry, 1 : "[LinearLift] twisting the complement";  
 
               // D stays the same 
               // J stays the same
               Q := QJ;
 
-// find an element u of U that maps to this vector
-/*
-c := Coordinates (IMAGE, (w @ f) @ pi);
-u := &* [ U.i^Integers ()!(c[i]) : i in [1..Ngens (U)] ];
-(u @ D`Star) * u - one - w in QJ;
-*/
-// fix this type of computation once and for all
+              c := LinearCombination (
+                  [Vector (gen_images[i]) : i in [1..#gen_images]], 
+                  Vector ((w @ f) @ pi)
+                                     );
+              u := &* [ U.i^Integers ()!(c[i]) : i in [1..Ngens (U)] ];
+//assert exists (u){ x : x in U | x @ D`Star * x - one - w in QJ };  --- brute force alternative
+              assert (u @ D`Star) * u - one - w in QJ;
+              vprint Isometry, 1 : "[LinearLift] twisting element is u =", u;
+              T := sub < Generic (S) | [ u^-1 * S.i * u : i in [1..Ngens (S)] ] >;
+              T`Star := hom < T -> T | t :-> u^-1 * ( (u * t * u^-1) @ S`Star ) * u >;
+              S := T;
 
-// update S by twisting
-assert exists (u){ x : x in U | x @ D`Star * x - one - w in QJ };
-vprint Isometry, 1 : "[LinearLift] twisting element is u =", u;
-T := sub < Generic (S) | [ u^-1 * S.i * u : i in [1..Ngens (S)] ] >;
-T`Star := hom < T -> T | t :-> u^-1 * ( (u * t * u^-1) @ S`Star ) * u >;
-S := T; 
-
-// verify the twist behaves as advertized
-assert forall { s : s in Generators (S) | s + (s @ S`Star) @ D`Star in QJ };
+         assert forall { s : s in Generators (S) | s + (s @ S`Star) @ D`Star in QJ };
 
               // update U
               null := Nullspace (M);
@@ -220,8 +183,9 @@ assert forall { s : s in Generators (S) | s + (s @ S`Star) @ D`Star in QJ };
 
     else              // swap D for an algebra fixing w in linear action 
 
-vprint Isometry, 1 : "[LinearLift] reduce semisimple part (not implemented yet)";
-Q := sub < Generic (Q) | Q!0 >;
+         vprint Isometry, 1 : "[LinearLift] reduce semisimple part (not implemented yet)";
+         // just set Q to 0 for now
+         Q := sub < Generic (Q) | Q!0 >;
 
     end if;
 
