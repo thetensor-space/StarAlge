@@ -89,6 +89,11 @@ GetDerivation := function (D, J, Q, S)
 return w, LINEAR;
 end function;
 
+GetAnnihilator := function (S, w)
+
+return A;
+end function;
+
 
 /*
 Here is the input data to be modified:
@@ -150,21 +155,21 @@ procedure LinearLift (~D, ~J, ~Q, ~S, ~U : RANDOM := true)
 
               // D stays the same 
               // J stays the same
+
+              // update Q
               Q := QJ;
 
-              c := LinearCombination (
-                  [Vector (gen_images[i]) : i in [1..#gen_images]], 
-                  Vector ((w @ f) @ pi)
-                                     );
+              // update S
+              gen_vecs := [Vector (gen_images[i]) : i in [1..#gen_images]];
+              c := LinearCombination (gen_vecs, Vector ((w @ f) @ pi));
               u := &* [ U.i^Integers ()!(c[i]) : i in [1..Ngens (U)] ];
 //assert exists (u){ x : x in U | x @ D`Star * x - one - w in QJ };  --- brute force alternative
               assert (u @ D`Star) * u - one - w in QJ;
-              vprint Isometry, 1 : "[LinearLift] twisting element is u =", u;
+              vprint Isometry, 2 : "[LinearLift] twisting element is u =", u;
               T := sub < Generic (S) | [ u^-1 * S.i * u : i in [1..Ngens (S)] ] >;
               T`Star := hom < T -> T | t :-> u^-1 * ( (u * t * u^-1) @ S`Star ) * u >;
               S := T;
-
-         assert forall { s : s in Generators (S) | s + (s @ S`Star) @ D`Star in QJ };
+              assert forall { s : s in Generators (S) | s + (s @ S`Star) @ D`Star in QJ };
 
               // update U
               null := Nullspace (M);
@@ -172,14 +177,13 @@ procedure LinearLift (~D, ~J, ~Q, ~S, ~U : RANDOM := true)
                   &* [ U.i^Integers ()!(n[i]) : i in [1..Ngens (U)] ] : n in Basis (null)
                                        ]
                          >;
-              // compute the derived subgroup of G: randomized or deterministic
-              if RANDOM then
+              if RANDOM then     // use randomized algorithm to compute the derived subgroup
                    DU := DerivedGroupMonteCarlo (U);
-              else 
+              else               // use the defaul from the Large Matrix Group library
                    DU := LMGDerivedGroup (U);
               end if;  
               U := sub < GL (d, K) | ker , DU , [ U.i^2 : i in [1..Ngens (U)] ] >;
-                   vprint Isometry, 1 : "[LinearLift] order of U =", #U;
+                   vprint Isometry, 1 : "[LinearLift] order of U =", LMGOrder (U);
 
     else              // swap D for an algebra fixing w in linear action 
 
